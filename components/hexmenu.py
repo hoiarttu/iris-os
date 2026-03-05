@@ -1,60 +1,75 @@
-# components/hexmenu.py
+"""
+components/hexmenu.py
+"""
+
 import math
 
+
 class HexMenu:
-    """
-    Computes the layout of 7 hexagons (one center + 6 around) and checks pointer hits.
-    """
-    def __init__(self, radius):
+    N_HEXES = 7
+
+    def __init__(self, radius=42):
         self.radius = radius
         R = radius
-        # Precompute relative centers (axial layout, pointy-topped hex coordinates)
-        self.rel_centers = [
-            (0,           0),            # center hex
-            (math.sqrt(3)*R, 0),         # right
-            (math.sqrt(3)/2*R,  1.5*R),  # bottom-right
-            (-math.sqrt(3)/2*R, 1.5*R),  # bottom-left
-            (-math.sqrt(3)*R,   0),      # left
-            (-math.sqrt(3)/2*R, -1.5*R), # top-left
-            (math.sqrt(3)/2*R, -1.5*R)   # top-right
-        ]
-        # Precompute vertex offsets for a hexagon (pointy top, flat sides on left/right)
-        angles_deg = [30, 90, 150, 210, 270, 330]
-        self.vertex_offsets = [
-            (R * math.cos(math.radians(a)), R * math.sin(math.radians(a)))
-            for a in angles_deg
-        ]
 
-    def get_hex_polygons(self, center):
-        """
-        Return a list of polygons (list of vertices) for each hex,
-        given the central position of the center hex.
-        """
-        cx, cy = center
-        polygons = []
-        for dx, dy in self.rel_centers:
-            hx, hy = cx + dx, cy + dy
-            # Build hexagon vertices around (hx, hy)
-            poly = [(hx + ox, hy + oy) for (ox, oy) in self.vertex_offsets]
-            polygons.append(poly)
-        return polygons
+        self._rel_centers = (
+            ( 0,                    0        ),
+            ( math.sqrt(3) * R,     0        ),
+            ( math.sqrt(3)/2 * R,   1.5 * R  ),
+            (-math.sqrt(3)/2 * R,   1.5 * R  ),
+            (-math.sqrt(3) * R,     0        ),
+            (-math.sqrt(3)/2 * R,  -1.5 * R  ),
+            ( math.sqrt(3)/2 * R,  -1.5 * R  ),
+        )
 
-    def get_highlight(self, polygons, pointer):
-        """
-        Given polygons and the pointer (x,y), return the index of the polygon
-        that contains the point, or None if none contain it.
-        """
+        self._v_offsets = tuple(
+            (R * math.cos(math.radians(a)),
+             R * math.sin(math.radians(a)))
+            for a in (30, 90, 150, 210, 270, 330)
+        )
+
+        self._base_polys = tuple(
+            tuple((dx + ox, dy + oy)
+                  for ox, oy in self._v_offsets)
+            for dx, dy in self._rel_centers
+        )
+
+        self._hit_radius_sq = R * R
+
+    def get_rotated_polygons(self, cos_a, sin_a, cx, cy):
+        out = []
+        for base in self._base_polys:
+            rotated = []
+            for x, y in base:
+                rotated.append((
+                    int(cx + cos_a * x - sin_a * y),
+                    int(cy + sin_a * x + cos_a * y),
+                ))
+            out.append(rotated)
+        return out
+
+    def get_center_points(self, cos_a, sin_a, cx, cy):
+        out = []
+        for dx, dy in self._rel_centers:
+            out.append((
+                int(cx + cos_a * dx - sin_a * dy),
+                int(cy + sin_a * dx + cos_a * dy),
+            ))
+        return out
+
+    def get_highlight(self, polygons, centers, pointer):
         px, py = pointer
-        for idx, poly in enumerate(polygons):
-            if self.point_in_poly(px, py, poly):
+        r2 = self._hit_radius_sq
+        for idx, (poly, (hx, hy)) in enumerate(zip(polygons, centers)):
+            dx, dy = px - hx, py - hy
+            if dx*dx + dy*dy > r2:
+                continue
+            if self._point_in_poly(px, py, poly):
                 return idx
         return None
 
-    def point_in_poly(self, x, y, poly):
-        """
-        Ray-casting algorithm to test if point (x,y) is inside polygon poly.
-        Uses the even-odd rule:contentReference[oaicite:13]{index=13}.
-        """
+    @staticmethod
+    def _point_in_poly(x, y, poly):
         inside = False
         n = len(poly)
         for i in range(n):
@@ -62,9 +77,6 @@ class HexMenu:
             xi, yi = poly[i]
             xj, yj = poly[j]
             if (yi > y) != (yj > y):
-                # Compute x coordinate of intersection with horizontal ray
-                x_intersect = (xj - xi) * (y - yi) / (yj - yi) + xi
-                if x < x_intersect:
+                if x < (xj - xi) * (y - yi) / (yj - yi) + xi:
                     inside = not inside
         return inside
-
