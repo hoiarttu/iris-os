@@ -1,17 +1,18 @@
-"""
-core/display.py
-"""
-
+import os
 import pygame
+
+os.environ['SDL_VIDEO_WINDOW_POS'] = '0,0'
+os.environ['SDL_VIDEO_CENTERED']   = '0'
+os.environ['SDL_FBDEV_MULTIBUFFER'] = '1'
 
 pygame.init()
 pygame.font.init()
 
-WIDTH  = 640
-HEIGHT = 360
+screen = pygame.display.set_mode((0, 0), pygame.NOFRAME)
+WIDTH  = screen.get_width()
+HEIGHT = screen.get_height()
 CENTER = (WIDTH // 2, HEIGHT // 2)
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('IRIS')
 
 canvas = pygame.Surface((WIDTH, HEIGHT))
@@ -28,4 +29,12 @@ HEX_NORMAL = ( 60, 130, 220)
 
 POOL = {
     'glow_lg': pygame.Surface((72, 72),        pygame.SRCALPHA),
-    'glow_sm': pygame.Surface((48, 48),
+    'glow_sm': pygame.Surface((48, 48),        pygame.SRCALPHA),
+    'cone':    pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA),
+}
+for _s in POOL.values():
+    _s.fill((0, 0, 0, 0))
+
+FONT_ICON    = pygame.font.SysFont('monospace', 13, bold=True)
+FONT_TOOLTIP = pygame.font.SysFont('monospace', 11)
+FONT_DEBUG   = pygame.font.SysFont('monospace', 11)
