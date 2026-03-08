@@ -35,6 +35,9 @@ POOL = {
 for _s in POOL.values():
     _s.fill((0, 0, 0, 0))
 
-FONT_ICON    = pygame.font.SysFont('monospace', 13, bold=True)
-FONT_TOOLTIP = pygame.font.SysFont('monospace', 11)
-FONT_DEBUG   = pygame.font.SysFont('monospace', 11)
+_MONO      = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
+_MONO_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf'
+
+FONT_ICON    = pygame.font.Font(_MONO_BOLD, 13)
+FONT_TOOLTIP = pygame.font.Font(_MONO,      11)
+FONT_DEBUG   = pygame.font.Font(_MONO,      11)

@@ -1,20 +1,16 @@
 """
-apps/system_app.py
-
-System stats app — CPU, temperature, memory.
-──────────────────────────────────────────────
-Reads Pi system stats and displays them in the centre widget when focused.
-Uses only stdlib — no psutil dependency to keep RAM low.
+apps/system_app.py — CPU, temperature, memory
+Pre-renders all text surfaces. No sleep() in hot path.
 """
 
-import os
-import time
 import pygame
 from apps.base_app import BaseApp
 
+_MONO      = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
+_MONO_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf'
+
 
 def _read_cpu_temp() -> float:
-    """Read CPU temperature from the Pi thermal zone."""
     try:
         with open('/sys/class/thermal/thermal_zone0/temp') as f:
             return int(f.read().strip()) / 1000.0
@@ -23,24 +19,18 @@ def _read_cpu_temp() -> float:
 
 
 def _read_cpu_percent() -> float:
-    """
-    Estimate CPU usage by reading /proc/stat twice with a short gap.
-    Returns a 0-100 float.
-    """
     try:
-        def read_stat():
-            with open('/proc/stat') as f:
-                line = f.readline()
-            vals = list(map(int, line.split()[1:]))
-            idle    = vals[3]
-            total   = sum(vals)
-            return idle, total
-
-        idle1, total1 = read_stat()
-        time.sleep(0.1)
-        idle2, total2 = read_stat()
-        diff_idle  = idle2  - idle1
-        diff_total = total2 - total1
+        with open('/proc/stat') as f:
+            vals = list(map(int, f.readline().split()[1:]))
+        idle  = vals[3]
+        total = sum(vals)
+        if not hasattr(_read_cpu_percent, '_last'):
+            _read_cpu_percent._last = (idle, total)
+            return 0.0
+        last_idle, last_total = _read_cpu_percent._last
+        _read_cpu_percent._last = (idle, total)
+        diff_total = total - last_total
+        diff_idle  = idle  - last_idle
         if diff_total == 0:
             return 0.0
         return round(100.0 * (1 - diff_idle / diff_total), 1)
@@ -49,13 +39,12 @@ def _read_cpu_percent() -> float:
 
 
 def _read_mem_percent() -> float:
-    """Read memory usage from /proc/meminfo."""
     try:
         info = {}
         with open('/proc/meminfo') as f:
             for line in f:
-                key, val = line.split(':')
-                info[key.strip()] = int(val.split()[0])
+                k, v = line.split(':')
+                info[k.strip()] = int(v.split()[0])
         total = info.get('MemTotal', 1)
         avail = info.get('MemAvailable', 0)
         return round(100.0 * (1 - avail / total), 1)
@@ -66,14 +55,35 @@ def _read_mem_percent() -> float:
 class SystemApp(BaseApp):
     name        = 'System'
     description = 'CPU · Temp · Memory'
-
-    _UPDATE_INTERVAL = 2.0   # seconds between stat reads
+    _UPDATE_INTERVAL = 2.0
 
     def __init__(self):
         self._cpu   = 0.0
         self._temp  = 0.0
         self._mem   = 0.0
         self._timer = 0.0
+
+        fn = pygame.font.Font(_MONO_BOLD, 20)
+        fv = pygame.font.Font(_MONO,      13)
+        fi = pygame.font.Font(_MONO_BOLD, 16)
+
+        self._name_surf = fn.render('SYSTEM', True, (80, 220, 255))
+        self._icon_surf = fi.render('SY',     True, (80, 220, 255))
+        self._stat_surfs = []
+        self._fn_big = fn
+        self._fv     = fv
+        self._rebuild_stats()
+
+    def _rebuild_stats(self):
+        lines = [
+            (f'CPU   {self._cpu:5.1f}%',  self._cpu),
+            (f'TEMP  {self._temp:5.1f}C', self._temp),
+            (f'MEM   {self._mem:5.1f}%',  self._mem),
+        ]
+        self._stat_surfs = []
+        for text, val in lines:
+            col = (255,80,80) if val>=80 else (255,220,80) if val>=60 else (80,255,160)
+            self._stat_surfs.append(self._fv.render(text, True, col))
 
     def update(self, dt: float):
         self._timer += dt
@@ -82,34 +92,29 @@ class SystemApp(BaseApp):
             self._temp  = _read_cpu_temp()
             self._cpu   = _read_cpu_percent()
             self._mem   = _read_mem_percent()
+            self._rebuild_stats()
 
-    def draw_widget(self, surface: pygame.Surface, rect: pygame.Rect):
-        name_font  = pygame.font.SysFont('monospace', 22, bold=True)
-        value_font = pygame.font.SysFont('monospace', 14)
+    def draw_icon(self, surface, center, radius):
+        r = self._icon_surf.get_rect(center=center)
+        surface.blit(self._icon_surf, r)
 
-        # Header
-        name_surf = name_font.render('SYSTEM', True, (80, 220, 255))
-        name_rect = name_surf.get_rect(centerx=rect.centerx,
-                                        top=rect.top + 10)
-        surface.blit(name_surf, name_rect)
+    def draw_widget(self, surface, rect):
+        nr = self._name_surf.get_rect(centerx=rect.centerx, top=rect.top + 8)
+        surface.blit(self._name_surf, nr)
+        y = nr.bottom + 8
+        for surf in self._stat_surfs:
+            sr = surf.get_rect(centerx=rect.centerx, top=y)
+            surface.blit(surf, sr)
+            y += surf.get_height() + 3
 
-        # Stats
-        stats = [
-            f'CPU   {self._cpu:5.1f} %',
-            f'TEMP  {self._temp:5.1f} C',
-            f'MEM   {self._mem:5.1f} %',
-        ]
-        y = name_rect.bottom + 10
-        for line in stats:
-            # Colour code: green < 60, yellow < 80, red >= 80
-            val = float(line.split()[-2])
-            if val >= 80:
-                col = (255, 80, 80)
-            elif val >= 60:
-                col = (255, 220, 80)
-            else:
-                col = (80, 255, 160)
-            surf = value_font.render(line, True, col)
-            rect2 = surf.get_rect(centerx=rect.centerx, top=y)
-            surface.blit(surf, rect2)
-            y += surf.get_height() + 4
+    def draw_fullscreen(self, surface):
+        surface.fill((0, 0, 0))
+        y  = 40
+        cx = surface.get_width() // 2
+        nr = self._name_surf.get_rect(centerx=cx, top=y)
+        surface.blit(self._name_surf, nr)
+        y  = nr.bottom + 20
+        for surf in self._stat_surfs:
+            sr = surf.get_rect(centerx=cx, top=y)
+            surface.blit(surf, sr)
+            y += surf.get_height() + 8

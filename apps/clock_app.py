@@ -1,15 +1,14 @@
 """
-apps/clock_app.py
-
-Default centre widget — clock and date.
-─────────────────────────────────────────
-Shown when no hex is being gazed at.
-Overrides draw_widget() only — no icon needed since it lives in the centre.
+apps/clock_app.py — default centre widget
+Shows time and date. Pre-rendered surfaces, no hot-path allocs.
 """
 
 import time
 import pygame
 from apps.base_app import BaseApp
+
+_MONO      = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
+_MONO_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf'
 
 
 class ClockApp(BaseApp):
@@ -17,34 +16,36 @@ class ClockApp(BaseApp):
     description = ''
 
     def __init__(self):
-        self._time_str = ''
-        self._date_str = ''
-        self._tick      = 0.0
+        self._time_str  = ''
+        self._date_str  = ''
+        self._tick      = 999.0
+
+        self._font_time = pygame.font.Font(_MONO_BOLD, 38)
+        self._font_date = pygame.font.Font(_MONO,      16)
+        self._color     = (80, 220, 255)
+        self._time_surf = None
+        self._date_surf = None
 
     def update(self, dt: float):
         self._tick += dt
-        # Only update time string once per second
         if self._tick >= 1.0:
             self._tick = 0.0
             now = time.localtime()
-            self._time_str = f'{now.tm_hour:02d}.{now.tm_min:02d}'
-            self._date_str = f'{now.tm_mday}.{now.tm_mon}.{now.tm_year}'
+            t = f'{now.tm_hour:02d}.{now.tm_min:02d}'
+            d = f'{now.tm_mday}.{now.tm_mon}.{now.tm_year}'
+            if t != self._time_str:
+                self._time_str  = t
+                self._time_surf = self._font_time.render(t, True, self._color)
+            if d != self._date_str:
+                self._date_str  = d
+                self._date_surf = self._font_date.render(d, True, self._color)
 
     def draw_widget(self, surface: pygame.Surface, rect: pygame.Rect):
-        """
-        Large time in the upper half of the rect.
-        Smaller date below it.
-        """
-        # Time
-        time_font = pygame.font.SysFont('monospace', 42, bold=True)
-        time_surf = time_font.render(self._time_str, True, (80, 220, 255))
-        time_rect = time_surf.get_rect(centerx=rect.centerx,
-                                        centery=rect.centery - 16)
-        surface.blit(time_surf, time_rect)
-
-        # Date
-        date_font = pygame.font.SysFont('monospace', 18)
-        date_surf = date_font.render(self._date_str, True, (80, 220, 255))
-        date_rect = date_surf.get_rect(centerx=rect.centerx,
-                                        top=time_rect.bottom + 4)
-        surface.blit(date_surf, date_rect)
+        if self._time_surf:
+            tr = self._time_surf.get_rect(centerx=rect.centerx,
+                                           centery=rect.centery - 12)
+            surface.blit(self._time_surf, tr)
+        if self._date_surf:
+            top = tr.bottom + 4 if self._time_surf else rect.top
+            dr  = self._date_surf.get_rect(centerx=rect.centerx, top=top)
+            surface.blit(self._date_surf, dr)
