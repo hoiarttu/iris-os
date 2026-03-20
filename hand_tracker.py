@@ -14,15 +14,15 @@ import tflite_runtime.interpreter as tflite
 
 SOCKET_PATH      = '/tmp/iris_hand.sock'
 CAMERA_INDEX     = 0
-TARGET_FPS       = 20
+TARGET_FPS       = 10
 PALM_MODEL       = '/home/iris/mirage_gui/palm_detection.tflite'
-PALM_THRESHOLD   = 0.7
+PALM_THRESHOLD   = 0.5
 #DIFF_THRESH      = 12
 MIN_DIFF_AREA    = 800
 ROI_PAD          = 0.5
 LOST_FRAMES      = 10
 ACQUIRE_EVERY    = 3
-SMOOTH           = 0.3
+SMOOTH           = 0.6
 DEBUG_VIDEO      = True
 
 ACQUIRING = 0

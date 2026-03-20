@@ -20,7 +20,9 @@ from apps.system_app    import SystemApp
 
 SMOOTH_T       = 0.15
 DWELL_SECS     = 0.6
-PX_PER_DEGREE  = 12
+DEV_NO_DWELL   = True   # set False for production
+PX_PER_DEGREE_YAW   = 28
+PX_PER_DEGREE_PITCH = 24
 
 # ── Default apps ──────────────────────────────────────────────────────────────
 
@@ -107,9 +109,9 @@ class MirageManager:
 
     # ── Per-frame update ──────────────────────────────────────────────────────
 
-    def update(self, yaw, pitch, dt, hand=None):
+    def update(self, imu_state, dt, hand=None):
         self._clock_app.update(dt)
-        self._smooth_yaw = lerp_angle(self._smooth_yaw, yaw, SMOOTH_T)
+        self._smooth_yaw = lerp_angle(self._smooth_yaw, imu_state.yaw, SMOOTH_T)
 
         new_focused    = None
         new_sel_mirage = None
@@ -129,7 +131,7 @@ class MirageManager:
                     app.update(dt)
 
             if m.type == 'hexmenu':
-                sel, cpt0 = self._render_hexmenu(m, yaw, dt, cursor)
+                sel, cpt0 = self._render_hexmenu(m, imu_state, dt, cursor)
                 if cpt0 is not None:
                     widget_pos = cpt0
                 if sel is not None:
@@ -157,11 +159,13 @@ class MirageManager:
         else:
             draw_pointer(canvas, CENTER)
 
+
+
         # Dwell
         dwell_key = (id(new_sel_mirage), new_sel_idx) if new_sel_mirage else None
         if dwell_key:
             self._dwell[dwell_key] = self._dwell.get(dwell_key, 0.0) + dt
-            if self._dwell[dwell_key] >= DWELL_SECS:
+            if not DEV_NO_DWELL and self._dwell[dwell_key] >= DWELL_SECS:
                 self.confirm_selection(self.os_ref)
                 del self._dwell[dwell_key]
         else:
@@ -185,11 +189,16 @@ class MirageManager:
 
     # ── Hex rendering ─────────────────────────────────────────────────────────
 
-    def _render_hexmenu(self, mirage, yaw, dt, cursor):
+    def _render_hexmenu(self, mirage, imu_state, dt, cursor):
+        import math
+        yaw   = imu_state.yaw
+        pitch = imu_state.pitch
+        roll  = imu_state.roll
+
         yaw_diff = angle_diff(yaw, mirage.azimuth)
         yaw_sign = 1 if ((yaw - mirage.azimuth + 360) % 360) < 180 else -1
-        cx = int(CENTER[0] - yaw_sign * yaw_diff * PX_PER_DEGREE)
-        cy = CENTER[1]
+        cx = int(CENTER[0] - yaw_sign * yaw_diff * PX_PER_DEGREE_YAW)
+        cy = int(CENTER[1] + pitch * PX_PER_DEGREE_PITCH)
 
         polys   = self.hex_menu.get_rotated_polygons(1.0, 0.0, cx, cy)
         centers = self.hex_menu.get_center_points(1.0, 0.0, cx, cy)

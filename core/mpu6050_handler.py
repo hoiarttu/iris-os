@@ -20,13 +20,7 @@ import time
 import math
 
 
-# ── Shared state object ───────────────────────────────────────────────────────
-
 class OrientationState:
-    """
-    Single persistent object — updated in-place every tick.
-    __slots__ eliminates per-instance __dict__ overhead (~200 bytes saved).
-    """
     __slots__ = ('yaw', 'pitch', 'roll', 'timestamp')
 
     def __init__(self):
@@ -44,8 +38,6 @@ class OrientationState:
                 f'roll={self.roll:.1f})')
 
 
-# ── Real hardware backend ──────────────────────────────────────────────────────
-
 class RealIMU:
     __slots__ = ('sensor', 'yaw_axis', 'pitch_axis', 'roll_axis',
                  'alpha', '_bias', '_state', '_last_time')
@@ -53,7 +45,7 @@ class RealIMU:
     _AXES = ('x', 'y', 'z')
 
     def __init__(self, address, bus, yaw_axis, pitch_axis, roll_axis, alpha):
-        from mpu6050 import mpu6050 as _lib   # deferred — only on real hardware
+        from mpu6050 import mpu6050 as _lib
         self.sensor     = _lib(address, bus=bus)
         self.yaw_axis   = yaw_axis
         self.pitch_axis = pitch_axis
@@ -86,36 +78,30 @@ class RealIMU:
         dt  = min(now - self._last_time, 0.1)
         self._last_time = now
 
-        # Single gyro + accel read (two I²C bursts, not four)
         gyro  = self.sensor.get_gyro_data()
         accel = self.sensor.get_accel_data()
 
-        # Bias-corrected gyro integration
-        self._state.yaw   = (self._state.yaw +
-            (gyro[self.yaw_axis]   - self._bias[self.yaw_axis])   * dt) % 360.0
+        # Yaw — pure gyro integration
+        self._state.yaw = (self._state.yaw +
+            (gyro[self.yaw_axis] - self._bias[self.yaw_axis]) * dt) % 360.0
+
+        # Pitch — pure gyro, soft drift correction when still
         self._state.pitch += (gyro[self.pitch_axis] - self._bias[self.pitch_axis]) * dt
-        self._state.roll  += (gyro[self.roll_axis]  - self._bias[self.roll_axis])  * dt
+        gyro_mag = abs(gyro[self.pitch_axis] - self._bias[self.pitch_axis])
+        if gyro_mag < 1.0:
+            self._state.pitch *= 0.99
+        self._state.pitch = max(-89.0, min(89.0, self._state.pitch))
 
-        # Accelerometer tilt correction (complementary filter)
+        # Roll — accel only, gravity aligned, smoothed
         ax, ay, az = accel['x'], accel['y'], accel['z']
-        ap = math.degrees(math.atan2(-ax, math.sqrt(ay*ay + az*az)))
-        ar = math.degrees(math.atan2(ay, az))
+        ar = math.degrees(math.atan2(az, -ax))
+        self._state.roll = max(-75.0, min(75.0, 0.9 * self._state.roll + 0.1 * ar))
 
-        a = self.alpha
-        self._state.pitch = max(-90.0, min(90.0, a * self._state.pitch + (1-a) * ap))
-        self._state.roll  = max(-90.0, min(90.0, a * self._state.roll  + (1-a) * ar))
         self._state.timestamp = now
         return self._state
 
 
-# ── Keyboard mock backend ──────────────────────────────────────────────────────
-
 class MockIMU:
-    """
-    Zero-hardware fallback.  Arrow keys drive yaw/pitch.
-    Imports pygame only here, not at module level, so the real backend
-    never pulls in pygame unnecessarily.
-    """
     __slots__ = ('_pygame', '_state', '_last_time')
 
     YAW_SPEED   = 45.0
@@ -158,14 +144,7 @@ class MockIMU:
         return self._state
 
 
-# ── Public factory ─────────────────────────────────────────────────────────────
-
 class Mpu6050Handler:
-    """
-    Auto-selects RealIMU or MockIMU.
-    All callers use this class only — never the backends directly.
-    update() always returns the same OrientationState instance (zero alloc).
-    """
     __slots__ = ('_backend',)
 
     def __init__(self, address=0x68, bus=1,
@@ -189,5 +168,4 @@ class Mpu6050Handler:
 
     @property
     def state(self) -> OrientationState:
-        """Last computed state without triggering a new sensor read."""
         return self._backend._state

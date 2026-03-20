@@ -38,9 +38,9 @@ from components.mirage_manager import MirageManager
 
 SCENE_PATH      = '/home/iris/mirages.json'
 IMU_BUS         = 11
-IMU_YAW_AXIS    = 'y'
+IMU_YAW_AXIS    = 'x'
 IMU_PITCH_AXIS  = 'z'
-IMU_ROLL_AXIS   = 'x'
+IMU_ROLL_AXIS   = 'y'
 IMU_ALPHA       = 0.98
 IMU_CAL_SAMPLES = 150
 
@@ -76,6 +76,9 @@ class IrisOS:
 
         self._running    = False
         self._active_app = None
+        _f = pygame.font.Font(
+            '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf', 11)
+        self._home_hint_surf = _f.render('both caps = home', True, (60, 60, 60))
 
     def boot(self):
         if IMU_CAL_SAMPLES > 0:
@@ -101,11 +104,13 @@ class IrisOS:
 
             canvas.fill(BLACK)
 
-            yaw   = 0.0 if self._pinned else imu_state.yaw
-            pitch = 0.0 if self._pinned else imu_state.pitch
+            if self._pinned:
+                imu_state.yaw   = 0.0
+                imu_state.pitch = 0.0
+                imu_state.roll  = 0.0
 
             if self.state == STATE_MENU:
-                self.scene.update(yaw, pitch, dt, self.hand)
+                self.scene.update(imu_state, dt, self.hand)
 
             elif self.state == STATE_APP:
                 if self._active_app:
@@ -117,9 +122,19 @@ class IrisOS:
                 if self._active_app:
                     self._active_app.draw_fullscreen(canvas)
                     self._active_app.update(dt)
-                self.scene.update(yaw, pitch, dt, self.hand)
+                self.scene.update(imu_state, dt, self.hand)
 
-            screen.blit(canvas, (0, 0))
+            roll = imu_state.roll if not self._pinned else 0.0
+            screen_center = (WIDTH // 2, HEIGHT // 2)
+            if abs(roll) > 1.0:
+                rotated = pygame.transform.rotate(canvas, -roll)
+                rect = rotated.get_rect(center=screen_center)
+                screen.fill(BLACK)
+                screen.blit(rotated, rect)
+            else:
+                rect = canvas.get_rect(center=screen_center)
+                screen.fill(BLACK)
+                screen.blit(canvas, rect)
             pygame.display.flip()
 
         self._shutdown()
@@ -164,7 +179,7 @@ class IrisOS:
         elif key == pygame.K_z:
             self._handle_cap(EVT_BACK)
         elif key == pygame.K_x:
-            self._handle_cap(EVT_CONFIRM)
+                self._handle_cap(EVT_CONFIRM)
         elif key == pygame.K_a:
             s = self.imu.state
             self.scene.add(s.yaw, s.pitch)
@@ -176,10 +191,8 @@ class IrisOS:
             self.scene.save()
 
     def _draw_home_hint(self):
-        f = pygame.font.Font(
-            '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf', 11)
-        s = f.render('both caps = home', True, (60, 60, 60))
-        canvas.blit(s, (WIDTH//2 - s.get_width()//2, HEIGHT - 20))
+        canvas.blit(self._home_hint_surf,
+                    (WIDTH//2 - self._home_hint_surf.get_width()//2, HEIGHT - 20))
 
     # ── Shutdown ──────────────────────────────────────────────────────────────
 
