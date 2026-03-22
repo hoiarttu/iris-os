@@ -40,7 +40,8 @@ class OrientationState:
 
 class RealIMU:
     __slots__ = ('sensor', 'yaw_axis', 'pitch_axis', 'roll_axis',
-                 'alpha', '_bias', '_state', '_last_time')
+                 'alpha', '_bias', '_pitch_offset', '_roll_offset',
+                 '_state', '_last_time')
 
     _AXES = ('x', 'y', 'z')
 
@@ -51,9 +52,11 @@ class RealIMU:
         self.pitch_axis = pitch_axis
         self.roll_axis  = roll_axis
         self.alpha      = alpha
-        self._bias      = {'x': 0.0, 'y': 0.0, 'z': 0.0}
-        self._state     = OrientationState()
-        self._last_time = time.time()
+        self._bias         = {'x': 0.0, 'y': 0.0, 'z': 0.0}
+        self._pitch_offset = 0.0
+        self._roll_offset  = 0.0
+        self._state        = OrientationState()
+        self._last_time    = time.time()
 
     def calibrate(self, samples: int = 200) -> dict:
         print(f'[IMU] Calibrating {samples} samples — hold still...')
@@ -66,7 +69,16 @@ class RealIMU:
         self._bias      = {ax: acc[ax] / samples for ax in self._AXES}
         self._state     = OrientationState()
         self._last_time = time.time()
-        print(f'[IMU] Bias: {self._bias}')
+        # Capture resting pitch and roll offsets from multiple accel samples
+        pacc, racc = 0.0, 0.0
+        for _ in range(100):
+            accel = self.sensor.get_accel_data()
+            pacc += math.degrees(math.atan2(accel['y'], -accel['x']))
+            racc += math.degrees(math.atan2(accel['z'], -accel['x']))
+            time.sleep(0.005)
+        self._pitch_offset = pacc / 100
+        self._roll_offset  = racc / 100
+        print(f'[IMU] Bias: {self._bias}  pitch_offset={self._pitch_offset:.1f}  roll_offset={self._roll_offset:.1f}')
         return self._bias
 
     def reset(self):
@@ -89,12 +101,12 @@ class RealIMU:
         self._state.pitch += (gyro[self.pitch_axis] - self._bias[self.pitch_axis]) * dt
         gyro_mag = abs(gyro[self.pitch_axis] - self._bias[self.pitch_axis])
         if gyro_mag < 1.0:
-            self._state.pitch *= 0.99
+            self._state.pitch *= 0.999
         self._state.pitch = max(-89.0, min(89.0, self._state.pitch))
 
         # Roll — accel only, gravity aligned, smoothed
         ax, ay, az = accel['x'], accel['y'], accel['z']
-        ar = math.degrees(math.atan2(az, -ax))
+        ar = math.degrees(math.atan2(az, -ax)) - 10.0
         self._state.roll = max(-75.0, min(75.0, 0.9 * self._state.roll + 0.1 * ar))
 
         self._state.timestamp = now

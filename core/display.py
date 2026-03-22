@@ -14,6 +14,7 @@ HEIGHT = screen.get_height()
 CENTER = (WIDTH // 2, HEIGHT // 2)
 
 pygame.display.set_caption('IRIS')
+pygame.mouse.set_visible(False)
 
 canvas = pygame.Surface((WIDTH, HEIGHT))
 

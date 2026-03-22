@@ -26,6 +26,7 @@ Keyboard shortcuts (dev):
 """
 
 import sys
+import signal
 import pygame
 
 from core.display          import screen, canvas, clock, CENTER, WIDTH, HEIGHT, FPS, BLACK, WHITE, ACCENT
@@ -76,6 +77,13 @@ class IrisOS:
 
         self._running    = False
         self._active_app = None
+        signal.signal(signal.SIGTERM, self._handle_sigterm)
+        self._dlp_timer  = 30.0  # fire on first frame
+        try:
+            import smbus2
+            self._dlp_bus = smbus2.SMBus(11)
+        except Exception:
+            self._dlp_bus = None
         _f = pygame.font.Font(
             '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf', 11)
         self._home_hint_surf = _f.render('both caps = home', True, (60, 60, 60))
@@ -101,6 +109,14 @@ class IrisOS:
 
             imu_state = self.imu.update()
             self.hand.update()
+            self._dlp_timer += dt
+            if self._dlp_timer >= 30.0 and self._dlp_bus:
+                self._dlp_timer = 0.0
+                try:
+                    self._dlp_bus.write_i2c_block_data(0x1b, 0x0c, [0x00,0x00,0x00,0x13])
+                    self._dlp_bus.write_i2c_block_data(0x1b, 0x0b, [0x00,0x00,0x00,0x00])
+                except Exception:
+                    pass
 
             canvas.fill(BLACK)
 
@@ -196,8 +212,24 @@ class IrisOS:
 
     # ── Shutdown ──────────────────────────────────────────────────────────────
 
+    def _handle_sigterm(self, signum, frame):
+        self._shutdown()
+
     def _shutdown(self):
         self.scene.save()
+        # Shutdown screen
+        try:
+            logo = pygame.image.load('/home/iris/mirage_gui/assets/LOGO.png').convert_alpha()
+            logo = pygame.transform.smoothscale(logo, (200, 200))
+            screen.fill(BLACK)
+            r = logo.get_rect(center=(WIDTH//2, HEIGHT//2))
+            screen.blit(logo, r)
+            pygame.display.flip()
+            pygame.time.wait(1500)
+        except Exception:
+            screen.fill(BLACK)
+            pygame.display.flip()
+            pygame.time.wait(500)
         pygame.quit()
         print('[IRIS] Shutdown.')
         sys.exit(0)
