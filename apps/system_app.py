@@ -6,8 +6,8 @@ Pre-renders all text surfaces. No sleep() in hot path.
 import pygame
 from apps.base_app import BaseApp
 
-_MONO      = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
-_MONO_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf'
+_MONO      = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Bold.ttf'
+_MONO_BOLD = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Bold.ttf'
 
 
 def _read_cpu_temp() -> float:
@@ -64,11 +64,11 @@ class SystemApp(BaseApp):
         self._timer = 0.0
 
         fn = pygame.font.Font(_MONO_BOLD, 20)
-        fv = pygame.font.Font(_MONO,      13)
+        fv = pygame.font.Font(_MONO_BOLD, 14)
         fi = pygame.font.Font(_MONO_BOLD, 16)
 
-        self._name_surf = fn.render('SYSTEM', True, (80, 220, 255))
-        self._icon_surf = fi.render('SY',     True, (80, 220, 255))
+        self._name_surf = fn.render('SYSTEM', True, (255, 255, 255))
+        self._icon_surf = fi.render('SY',     True, (255, 255, 255))
         self._stat_surfs = []
         self._fn_big = fn
         self._fv     = fv
@@ -82,7 +82,7 @@ class SystemApp(BaseApp):
         ]
         self._stat_surfs = []
         for text, val in lines:
-            col = (255,80,80) if val>=80 else (255,220,80) if val>=60 else (80,255,160)
+            col = (255,100,100) if val>=80 else (255,230,100) if val>=60 else (255,255,255)
             self._stat_surfs.append(self._fv.render(text, True, col))
 
     def update(self, dt: float):
@@ -99,7 +99,7 @@ class SystemApp(BaseApp):
         surface.blit(self._icon_surf, r)
 
     def draw_widget(self, surface, rect):
-        nr = self._name_surf.get_rect(centerx=rect.centerx, top=rect.top + 8)
+        nr = self._name_surf.get_rect(centerx=rect.centerx, top=rect.top + 6)
         surface.blit(self._name_surf, nr)
         y = nr.bottom + 8
         for surf in self._stat_surfs:

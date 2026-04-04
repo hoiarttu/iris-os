@@ -7,8 +7,8 @@ import time
 import pygame
 from apps.base_app import BaseApp
 
-_MONO      = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
-_MONO_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf'
+_MONO      = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Bold.ttf'
+_MONO_BOLD = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Bold.ttf'
 
 
 class ClockApp(BaseApp):
@@ -20,9 +20,9 @@ class ClockApp(BaseApp):
         self._date_str  = ''
         self._tick      = 999.0
 
-        self._font_time = pygame.font.Font(_MONO_BOLD, 38)
-        self._font_date = pygame.font.Font(_MONO,      16)
-        self._color     = (80, 220, 255)
+        self._font_time = pygame.font.Font(_MONO_BOLD, 48)
+        self._font_date = pygame.font.Font(_MONO_BOLD,      20)
+        self._color     = (255, 255, 255)
         self._time_surf = None
         self._date_surf = None
 

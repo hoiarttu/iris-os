@@ -85,7 +85,7 @@ class IrisOS:
         except Exception:
             self._dlp_bus = None
         _f = pygame.font.Font(
-            '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf', 11)
+            '/home/iris/mirage_gui/assets/fonts/Rajdhani-Regular.ttf', 11)
         self._home_hint_surf = _f.render('both caps = home', True, (60, 60, 60))
 
     def boot(self):
@@ -142,14 +142,23 @@ class IrisOS:
 
             roll = imu_state.roll if not self._pinned else 0.0
             screen_center = (WIDTH // 2, HEIGHT // 2)
-            if abs(roll) > 1.0:
+            screen.fill(BLACK)
+            if self.scene._spawning:
+                from core.geometry import ease_out
+                t = ease_out(min(1.0, self.scene._spawn_t / self.scene._SPAWN_DUR))
+                if t > 0.01:
+                    scaled_w = max(1, int(WIDTH * t))
+                    scaled_h = max(1, int(HEIGHT * t))
+                    scaled = pygame.transform.scale(canvas, (scaled_w, scaled_h))
+                    scaled.set_alpha(int(255 * t))
+                    rect = scaled.get_rect(center=screen_center)
+                    screen.blit(scaled, rect)
+            elif abs(roll) > 1.0:
                 rotated = pygame.transform.rotate(canvas, -roll)
                 rect = rotated.get_rect(center=screen_center)
-                screen.fill(BLACK)
                 screen.blit(rotated, rect)
             else:
                 rect = canvas.get_rect(center=screen_center)
-                screen.fill(BLACK)
                 screen.blit(canvas, rect)
             pygame.display.flip()
 
@@ -170,6 +179,7 @@ class IrisOS:
             self._active_app.close()
             self._active_app = None
         self.state = STATE_MENU
+        self.scene.trigger_spawn()
         print('[IRIS] Returned to menu.')
 
     # ── Input ─────────────────────────────────────────────────────────────────

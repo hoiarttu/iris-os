@@ -12,7 +12,21 @@ from core.display       import canvas, CENTER, WIDTH, HEIGHT, BLACK, WHITE, ACCE
 from core.geometry      import angle_diff, lerp_angle
 from components.hexmenu import HexMenu
 from components.draw    import draw_hex_border, draw_pointer
+import pygame as _pg
 from apps.clock_app     import ClockApp
+
+_CURSOR_SURF = None
+def _get_cursor():
+    global _CURSOR_SURF
+    if _CURSOR_SURF is None:
+        try:
+            img = _pg.image.load('/home/iris/mirage_gui/assets/LOGO.png').convert_alpha()
+            img = _pg.transform.smoothscale(img, (36, 36))
+            img.set_alpha(128)
+            _CURSOR_SURF = img
+        except Exception:
+            _CURSOR_SURF = False
+    return _CURSOR_SURF
 from apps.placeholder_app import PlaceholderApp
 from apps.system_app    import SystemApp
 
@@ -69,6 +83,10 @@ class MirageManager:
         self._last_focused = None
         self._sel_mirage   = None
         self._sel_idx      = None
+        self._spawn_t      = 0.0
+        self._spawning     = True
+        self._SPAWN_DUR    = 1.2
+        self._zoom_t       = {}
         self.load()
 
     # ── Persistence ──────────────────────────────────────────────────────────
@@ -101,6 +119,10 @@ class MirageManager:
         if self.mirages:
             self.mirages.pop(idx)
 
+    def trigger_spawn(self):
+        self._spawn_t = 0.0
+        self._spawning = True
+
     def confirm_selection(self, os_ref):
         if self._sel_mirage and self._sel_idx is not None:
             app = self._sel_mirage.apps[self._sel_idx]
@@ -112,6 +134,12 @@ class MirageManager:
     def update(self, imu_state, dt, hand=None):
         self._clock_app.update(dt)
         self._smooth_yaw = lerp_angle(self._smooth_yaw, imu_state.yaw, SMOOTH_T)
+        if self._spawning:
+            import os as _os
+            if _os.path.exists('/tmp/iris_boot_done'):
+                self._spawn_t += dt
+                if self._spawn_t >= self._SPAWN_DUR:
+                    self._spawning = False
 
         new_focused    = None
         new_sel_mirage = None
@@ -157,7 +185,12 @@ class MirageManager:
         if hand and hand.active:
             self._draw_hand_cursor(cursor, hand.pinch)
         else:
-            draw_pointer(canvas, CENTER)
+            cur = _get_cursor()
+            if cur:
+                r = cur.get_rect(center=CENTER)
+                canvas.blit(cur, r)
+            else:
+                draw_pointer(canvas, CENTER)
 
 
 
@@ -176,7 +209,7 @@ class MirageManager:
     # ── Centre widget ─────────────────────────────────────────────────────────
 
     def _draw_centre_widget(self, pos):
-        w, h = 160, 110
+        w, h = 200, 140
         rect = pygame.Rect(pos[0] - w//2, pos[1] - h//2, w, h)
         self._focused_app.draw_widget(canvas, rect)
 
@@ -212,19 +245,29 @@ class MirageManager:
         if sel is not None:
             sel += 1
 
-        for i, (poly, cpt) in enumerate(zip(polys, centers)):
-            if i == 0:
-                continue
+        # Draw unfocused hexes first, focused on top
+        draw_order = [i for i in range(1, len(polys)) if i != sel]
+        if sel is not None:
+            draw_order.append(sel)
+
+        for i in draw_order:
+            poly, cpt = polys[i], centers[i]
             focused = (i == sel)
-            draw_hex_border(canvas, poly, focused)
-            if i < len(mirage.apps) and mirage.apps[i]:
-                mirage.apps[i].draw_icon(canvas, cpt, self.hex_menu.radius * 0.5)
 
             if focused:
-                dk   = (id(mirage), i)
-                frac = min(1.0, self._dwell.get(dk, 0.0) / DWELL_SECS)
-                if frac > 0.0:
-                    self._draw_dwell_ring(canvas, cpt, frac)
+                self._zoom_t[i] = min(1.0, self._zoom_t.get(i, 0.0) + dt * 4)
+            else:
+                self._zoom_t[i] = max(0.0, self._zoom_t.get(i, 0.0) - dt * 4)
+            zt = self._zoom_t.get(i, 0.0)
+            zoom = 1.0 + 0.12 * zt
+            zpoly = [
+                (int(cpt[0] + (px - cpt[0]) * zoom),
+                 int(cpt[1] + (py - cpt[1]) * zoom))
+                for px, py in poly
+            ]
+            draw_hex_border(canvas, zpoly, focused)
+            if i < len(mirage.apps) and mirage.apps[i]:
+                mirage.apps[i].draw_icon(canvas, cpt, self.hex_menu.radius * 0.5)
 
         return sel, centers[0]
 

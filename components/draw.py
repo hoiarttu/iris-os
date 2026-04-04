@@ -16,7 +16,7 @@ from core.display import BLACK, WHITE, ACCENT
 HEX_FILL           = (  8,   8,  18)
 HEX_BORDER_IDLE    = ( 80,  40, 180)
 HEX_BORDER_FOCUSED = ( 80, 220, 255)
-HEX_BORDER_WIDTH   = 2
+HEX_BORDER_WIDTH   = 8
 
 
 def draw_hex_border(surface, points, focused: bool = False):

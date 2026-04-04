@@ -36,8 +36,8 @@ POOL = {
 for _s in POOL.values():
     _s.fill((0, 0, 0, 0))
 
-_MONO      = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
-_MONO_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf'
+_MONO      = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Regular.ttf'
+_MONO_BOLD = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Bold.ttf'
 
 FONT_ICON    = pygame.font.Font(_MONO_BOLD, 13)
 FONT_TOOLTIP = pygame.font.Font(_MONO,      11)
