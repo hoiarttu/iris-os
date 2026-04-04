@@ -104,9 +104,15 @@ class RealIMU:
             self._state.pitch *= 0.999
         self._state.pitch = max(-89.0, min(89.0, self._state.pitch))
 
-        # Roll — accel only, gravity aligned, smoothed
+        # Roll — two formula, orientation aware
         ax, ay, az = accel['x'], accel['y'], accel['z']
-        ar = math.degrees(math.atan2(az, -ax)) - 10.0
+        abs_ax, abs_ay, abs_az = abs(ax), abs(ay), abs(az)
+        if abs_ax > abs_ay and abs_ax > abs_az:
+            ar = math.degrees(math.atan2(az, -ax))
+        elif abs_az > abs_ax and abs_az > abs_ay:
+            ar = 0.0
+        else:
+            ar = math.degrees(math.atan2(ax, ay))
         self._state.roll = max(-75.0, min(75.0, 0.9 * self._state.roll + 0.1 * ar))
 
         self._state.timestamp = now
