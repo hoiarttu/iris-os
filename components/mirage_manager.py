@@ -197,8 +197,14 @@ class MirageManager:
 
         yaw_diff = angle_diff(yaw, mirage.azimuth)
         yaw_sign = 1 if ((yaw - mirage.azimuth + 360) % 360) < 180 else -1
-        cx = int(CENTER[0] - yaw_sign * yaw_diff * PX_PER_DEGREE_YAW)
-        cy = int(CENTER[1] + pitch * PX_PER_DEGREE_PITCH)
+        # Raw displacement
+        dx = -yaw_sign * yaw_diff * PX_PER_DEGREE_YAW
+        dy = pitch * PX_PER_DEGREE_PITCH
+        # Rotate displacement by roll angle
+        roll_rad = math.radians(imu_state.roll)
+        cr, sr = math.cos(roll_rad), math.sin(roll_rad)
+        cx = int(CENTER[0] + cr * dx - sr * dy)
+        cy = int(CENTER[1] + sr * dx + cr * dy)
 
         polys   = self.hex_menu.get_rotated_polygons(1.0, 0.0, cx, cy)
         centers = self.hex_menu.get_center_points(1.0, 0.0, cx, cy)
