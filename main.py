@@ -125,11 +125,14 @@ class IrisOS:
                             m.elevation = 0.0
                         self.imu.reset()
                         self.scene.save()
-                        self.scene.trigger_spawn()
                         print('[IRIS] Mirage pinned')
-                    self._both_held = False
+                    self._both_held  = False
+                    self._pinned     = False
+                    if held_secs >= 1.5:
+                        self.scene.trigger_spawn()
                 else:
-                    # Still held — override IMU to keep mirage centered
+                    # Still held — lock IMU so mirage stays centered
+                    self._pinned = True
                     imu_state.yaw   = self.scene.mirages[0].azimuth if self.scene.mirages else 0.0
                     imu_state.pitch = 0.0
             self._dlp_timer += dt
