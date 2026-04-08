@@ -77,6 +77,8 @@ class IrisOS:
 
         self._running    = False
         self._active_app = None
+        self._both_held  = False
+        self._both_since = 0.0
         signal.signal(signal.SIGTERM, self._handle_sigterm)
         self._dlp_timer  = 30.0  # fire on first frame
         try:
@@ -109,6 +111,27 @@ class IrisOS:
 
             imu_state = self.imu.update()
             self.hand.update()
+
+            # Both caps held — freeze mirage at center
+            if self._both_held:
+                import time as _t
+                both_now = self.input._alpha_held and self.input._beta_held
+                if not both_now:
+                    # Released — pin at current yaw, reset pitch, spawn
+                    held_secs = _t.time() - self._both_since
+                    if held_secs >= 1.5:
+                        for m in self.scene.mirages:
+                            m.azimuth   = imu_state.yaw
+                            m.elevation = 0.0
+                        self.imu.reset()
+                        self.scene.save()
+                        self.scene.trigger_spawn()
+                        print('[IRIS] Mirage pinned')
+                    self._both_held = False
+                else:
+                    # Still held — override IMU to keep mirage centered
+                    imu_state.yaw   = self.scene.mirages[0].azimuth if self.scene.mirages else 0.0
+                    imu_state.pitch = 0.0
             self._dlp_timer += dt
             if self._dlp_timer >= 30.0 and self._dlp_bus:
                 self._dlp_timer = 0.0
@@ -189,13 +212,8 @@ class IrisOS:
             if self.state in (STATE_APP, STATE_OVERLAY):
                 self.close_app()
             elif self.state == STATE_MENU:
-                # Both caps in menu — re-center mirage to current yaw, reset pitch
-                for m in self.scene.mirages:
-                    m.azimuth   = self.imu.state.yaw
-                    m.elevation = 0.0
-                self.imu.reset()
-                self.scene.save()
-                print('[IRIS] Mirage re-centered')
+                self._both_held  = True
+                self._both_since = __import__('time').time()
         elif event == EVT_CONFIRM:
             self.scene.confirm_selection(self)
         elif event == EVT_BACK:
