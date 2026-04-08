@@ -7,6 +7,7 @@ Hand cursor replaces pointer when hand tracker is active.
 
 import os, math, json
 import pygame
+import platform
 
 from core.display       import canvas, CENTER, WIDTH, HEIGHT, BLACK, WHITE, ACCENT
 from core.geometry      import angle_diff, lerp_angle
@@ -134,9 +135,11 @@ class MirageManager:
     def update(self, imu_state, dt, hand=None):
         self._clock_app.update(dt)
         self._smooth_yaw = lerp_angle(self._smooth_yaw, imu_state.yaw, SMOOTH_T)
+
         if self._spawning:
-            import os as _os
-            if _os.path.exists('/tmp/iris_boot_done'):
+            is_pi = "raspberrypi" in platform.node().lower()
+
+            if (not is_pi) or os.path.exists('/tmp/iris_boot_done'):
                 self._spawn_t += dt
                 if self._spawn_t >= self._SPAWN_DUR:
                     self._spawning = False
