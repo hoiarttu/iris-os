@@ -5,10 +5,6 @@ Cap touch input handler — ESP32 I2C at 0x42 on bus 11.
 
 Register map:
   0x00 R   status byte (bit0=Alpha, bit1=Beta)
-  0x09 R   events byte (bit0=Alpha down, bit1=Alpha up,
-                        bit2=Beta down,  bit3=Beta up)
-  0x0A R   Alpha hold duration (units of 10ms)
-  0x0B R   Beta  hold duration (units of 10ms)
   0x01 W   RGB R
   0x02 W   RGB G
   0x03 W   RGB B
@@ -25,18 +21,21 @@ EVT_HOME    = 'home'
 
 ESP32_BUS     = 11
 ESP32_ADDRESS = 0x42
-
-HOLD_THRESHOLD = 50  # units of 10ms = 500ms for hold
+HOLD_SECS     = 0.5
 
 
 class InputHandler:
 
     def __init__(self):
-        self._mock_queue = []
-        self._bus        = None
-        self._last_hb    = 0.0
-        self._alpha_held = False
-        self._beta_held  = False
+        self._mock_queue  = []
+        self._bus         = None
+        self._last_hb     = 0.0
+        self._connected   = False
+        self._alpha_held  = False
+        self._beta_held   = False
+        self._alpha_since = 0.0
+        self._beta_since  = 0.0
+        self._both_fired  = False
 
         try:
             import smbus2
@@ -53,44 +52,51 @@ class InputHandler:
     def _poll_esp32(self) -> list:
         events = []
         try:
-            # Heartbeat every second
             now = time.time()
+
+            # Heartbeat — also sends LED color on first connect
             if now - self._last_hb >= 1.0:
                 self._bus.write_byte_data(ESP32_ADDRESS, 0x08, 0x01)
+                if not self._connected:
+                    self._connected = True
+                    self.set_led(80, 220, 255, 0)  # solid cyan on connect
+                    print('[Input] LED set to system color')
                 self._last_hb = now
 
-            # Read event byte — self-clears on read
-            evts = self._bus.read_byte_data(ESP32_ADDRESS, 0x09)
+            # Read status byte
+            status = self._bus.read_byte_data(ESP32_ADDRESS, 0x00)
+            alpha = bool(status & 0x01)
+            beta  = bool(status & 0x02)
 
-            alpha_down = bool(evts & 0x01)
-            alpha_up   = bool(evts & 0x02)
-            beta_down  = bool(evts & 0x04)
-            beta_up    = bool(evts & 0x08)
+            # Track press timing Pi-side
+            if alpha and not self._alpha_held:
+                self._alpha_since = now
+            if beta and not self._beta_held:
+                self._beta_since = now
 
-            # Read hold durations
-            alpha_hold = self._bus.read_byte_data(ESP32_ADDRESS, 0x0A)
-            beta_hold  = self._bus.read_byte_data(ESP32_ADDRESS, 0x0B)
-
-            both = self._bus.read_byte_data(ESP32_ADDRESS, 0x00)
-            both_pressed = (both & 0x03) == 0x03
+            both = alpha and beta
 
             # Both caps = home
-            if both_pressed and not (self._alpha_held and self._beta_held):
+            if both and not self._both_fired:
                 events.append(EVT_HOME)
+                self._both_fired = True
+            if not both:
+                self._both_fired = False
 
-            # Alpha alone = back
-            if alpha_up and not beta_down:
+            # Alpha alone released = back
+            if not alpha and self._alpha_held and not beta:
                 events.append(EVT_BACK)
 
-            # Beta alone = confirm
-            if beta_up and not alpha_down:
+            # Beta alone released = confirm
+            if not beta and self._beta_held and not alpha:
                 events.append(EVT_CONFIRM)
 
-            self._alpha_held = bool(both & 0x01)
-            self._beta_held  = bool(both & 0x02)
+            self._alpha_held = alpha
+            self._beta_held  = beta
 
         except Exception as e:
             print(f'[Input] Read error: {e}')
+            self._connected = False
 
         return events
 

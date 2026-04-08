@@ -188,6 +188,13 @@ class IrisOS:
         if event == EVT_HOME:
             if self.state in (STATE_APP, STATE_OVERLAY):
                 self.close_app()
+            elif self.state == STATE_MENU:
+                # Both caps in menu — re-center and pin mirage
+                for m in self.scene.mirages:
+                    m.azimuth   = self.imu.state.yaw
+                    m.elevation = self.imu.state.pitch
+                self.scene.save()
+                print('[IRIS] Mirage re-centered')
         elif event == EVT_CONFIRM:
             self.scene.confirm_selection(self)
         elif event == EVT_BACK:
