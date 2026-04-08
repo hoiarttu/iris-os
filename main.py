@@ -189,10 +189,11 @@ class IrisOS:
             if self.state in (STATE_APP, STATE_OVERLAY):
                 self.close_app()
             elif self.state == STATE_MENU:
-                # Both caps in menu — re-center and pin mirage
+                # Both caps in menu — re-center mirage to current yaw, reset pitch
                 for m in self.scene.mirages:
                     m.azimuth   = self.imu.state.yaw
-                    m.elevation = self.imu.state.pitch
+                    m.elevation = 0.0
+                self.imu.reset()
                 self.scene.save()
                 print('[IRIS] Mirage re-centered')
         elif event == EVT_CONFIRM:
