@@ -35,9 +35,18 @@ POOL = {
 }
 for _s in POOL.values():
     _s.fill((0, 0, 0, 0))
-
+"""
 _MONO      = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Regular.ttf'
 _MONO_BOLD = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Bold.ttf'
+"""
+
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+FONT_DIR = os.path.join(BASE_DIR, "assets", "fonts")
+
+_MONO      = os.path.join(FONT_DIR, "Rajdhani-Regular.ttf")
+_MONO_BOLD = os.path.join(FONT_DIR, "Rajdhani-Bold.ttf")
 
 FONT_ICON    = pygame.font.Font(_MONO_BOLD, 13)
 FONT_TOOLTIP = pygame.font.Font(_MONO,      11)
