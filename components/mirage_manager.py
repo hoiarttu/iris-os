@@ -20,7 +20,7 @@ def _get_cursor():
     global _CURSOR_SURF
     if _CURSOR_SURF is None:
         try:
-            img = _pg.image.load('/home/iris/mirage_gui/assets/LOGO.png').convert_alpha()
+            img = _pg.image.load('./assets/LOGO.png').convert_alpha()
             img = _pg.transform.smoothscale(img, (36, 36))
             img.set_alpha(128)
             _CURSOR_SURF = img

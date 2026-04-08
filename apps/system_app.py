@@ -6,8 +6,8 @@ Pre-renders all text surfaces. No sleep() in hot path.
 import pygame
 from apps.base_app import BaseApp
 
-_MONO      = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Bold.ttf'
-_MONO_BOLD = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Bold.ttf'
+_MONO      = 'assets/fonts/Rajdhani-Bold.ttf'
+_MONO_BOLD = 'assets/fonts/Rajdhani-Bold.ttf'
 
 
 def _read_cpu_temp() -> float:

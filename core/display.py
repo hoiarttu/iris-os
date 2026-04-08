@@ -36,8 +36,8 @@ POOL = {
 for _s in POOL.values():
     _s.fill((0, 0, 0, 0))
 """
-_MONO      = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Regular.ttf'
-_MONO_BOLD = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Bold.ttf'
+_MONO      = 'assets/fonts/Rajdhani-Regular.ttf'
+_MONO_BOLD = 'assets/fonts/Rajdhani-Bold.ttf'
 """
 
 import os

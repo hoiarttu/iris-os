@@ -5,8 +5,8 @@ apps/placeholder_app.py — empty hex slot
 import pygame
 from apps.base_app import BaseApp
 
-_MONO      = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Bold.ttf'
-_MONO_BOLD = '/home/iris/mirage_gui/assets/fonts/Rajdhani-Bold.ttf'
+_MONO      = 'assets/fonts/Rajdhani-Bold.ttf'
+_MONO_BOLD = 'assets/fonts/Rajdhani-Bold.ttf'
 
 
 class PlaceholderApp(BaseApp):

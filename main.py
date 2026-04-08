@@ -37,7 +37,7 @@ from components.mirage_manager import MirageManager
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-SCENE_PATH      = '/home/iris/mirages.json'
+SCENE_PATH      = 'mirages.json'
 IMU_BUS         = 11
 IMU_YAW_AXIS    = 'x'
 IMU_PITCH_AXIS  = 'z'
@@ -85,7 +85,7 @@ class IrisOS:
         except Exception:
             self._dlp_bus = None
         _f = pygame.font.Font(
-            '/home/iris/mirage_gui/assets/fonts/Rajdhani-Regular.ttf', 11)
+            'assets/fonts/Rajdhani-Regular.ttf', 11)
         self._home_hint_surf = _f.render('both caps = home', True, (60, 60, 60))
 
     def boot(self):
@@ -229,7 +229,7 @@ class IrisOS:
         self.scene.save()
         # Shutdown screen
         try:
-            logo = pygame.image.load('/home/iris/mirage_gui/assets/LOGO.png').convert_alpha()
+            logo = pygame.image.load('assets/LOGO.png').convert_alpha()
             logo = pygame.transform.smoothscale(logo, (200, 200))
             screen.fill(BLACK)
             r = logo.get_rect(center=(WIDTH//2, HEIGHT//2))
