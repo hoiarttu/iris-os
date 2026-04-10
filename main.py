@@ -113,11 +113,13 @@ class IrisOS:
             self.hand.update()
 
             # Both caps held — freeze mirage at center
+            import time as _t
+            both_now = self.input._alpha_held and self.input._beta_held
+            if both_now and not self._both_held:
+                self._both_held  = True
+                self._both_since = _t.time()
             if self._both_held:
-                import time as _t
-                both_now = self.input._alpha_held and self.input._beta_held
                 if not both_now:
-                    # Released — pin at current yaw, reset pitch, spawn
                     held_secs = _t.time() - self._both_since
                     if held_secs >= 1.5:
                         for m in self.scene.mirages:
@@ -125,14 +127,12 @@ class IrisOS:
                             m.elevation = 0.0
                         self.imu.reset()
                         self.scene.save()
-                        print('[IRIS] Mirage pinned')
-                    self._both_held  = False
-                    self._pinned     = False
-                    if held_secs >= 1.5:
                         self.scene.trigger_spawn()
+                        print('[IRIS] Mirage pinned')
+                    self._both_held = False
+                    self._pinned    = False
                 else:
-                    # Still held — lock IMU so mirage stays centered
-                    self._pinned = True
+                    self._pinned    = True
                     imu_state.yaw   = self.scene.mirages[0].azimuth if self.scene.mirages else 0.0
                     imu_state.pitch = 0.0
             self._dlp_timer += dt
@@ -214,9 +214,6 @@ class IrisOS:
         if event == EVT_HOME:
             if self.state in (STATE_APP, STATE_OVERLAY):
                 self.close_app()
-            elif self.state == STATE_MENU:
-                self._both_held  = True
-                self._both_since = __import__('time').time()
         elif event == EVT_CONFIRM:
             self.scene.confirm_selection(self)
         elif event == EVT_BACK:

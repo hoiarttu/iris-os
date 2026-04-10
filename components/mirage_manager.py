@@ -123,6 +123,7 @@ class MirageManager:
     def trigger_spawn(self):
         self._spawn_t = 0.02
         self._spawning = True
+        print('[Scene] trigger_spawn called')
 
     def confirm_selection(self, os_ref):
         if self._sel_mirage and self._sel_idx is not None:
