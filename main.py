@@ -115,6 +115,7 @@ class IrisOS:
             # Both caps held — freeze mirage at center
             import time as _t
             both_now = self.input._alpha_held and self.input._beta_held
+
             if both_now and not self._both_held:
                 self._both_held  = True
                 self._both_since = _t.time()
@@ -127,6 +128,7 @@ class IrisOS:
                             m.elevation = 0.0
                         self.imu.reset()
                         self.scene.save()
+                        print('[IRIS] calling trigger_spawn')
                         self.scene.trigger_spawn()
                         print('[IRIS] Mirage pinned')
                     self._both_held = False
