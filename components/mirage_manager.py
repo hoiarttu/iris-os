@@ -121,7 +121,7 @@ class MirageManager:
             self.mirages.pop(idx)
 
     def trigger_spawn(self):
-        self._spawn_t = 0.0
+        self._spawn_t = 0.02
         self._spawning = True
 
     def confirm_selection(self, os_ref):
@@ -139,7 +139,7 @@ class MirageManager:
         if self._spawning:
             is_pi = "raspberrypi" in platform.node().lower()
 
-            if (not is_pi) or os.path.exists('/tmp/iris_boot_done'):
+            if self._spawn_t > 0.01 or (not is_pi) or os.path.exists('/tmp/iris_boot_done'):
                 self._spawn_t += dt
                 if self._spawn_t >= self._SPAWN_DUR:
                     self._spawning = False
