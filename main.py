@@ -238,6 +238,14 @@ class IrisOS:
         elif event == EVT_BACK:
             if self.state == STATE_APP:
                 self.close_app()
+            elif self.state == STATE_MENU:
+                for m in self.scene.mirages:
+                    m.azimuth   = self.imu.state.yaw
+                    m.elevation = 0.0
+                self.imu.reset()
+                self.scene.save()
+                self.scene.trigger_spawn()
+                print('[IRIS] Mirage recentered via back')
 
     def _handle_key(self, key):
         if key == pygame.K_ESCAPE:

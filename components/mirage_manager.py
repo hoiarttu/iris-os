@@ -86,6 +86,7 @@ class MirageManager:
         self._sel_idx      = None
         self._spawn_t      = 0.0
         self._spawning     = True
+        self._spawn_forced = False
         self._SPAWN_DUR    = 1.2
         self._zoom_t       = {}
         self.load()
@@ -121,9 +122,9 @@ class MirageManager:
             self.mirages.pop(idx)
 
     def trigger_spawn(self):
-        self._spawn_t = 0.02
-        self._spawning = True
-        print('[Scene] trigger_spawn called')
+        self._spawn_t      = 0.0
+        self._spawning     = True
+        self._spawn_forced = True
 
     def confirm_selection(self, os_ref):
         if self._sel_mirage and self._sel_idx is not None:
@@ -140,7 +141,7 @@ class MirageManager:
         if self._spawning:
             is_pi = "raspberrypi" in platform.node().lower()
 
-            if self._spawn_t > 0.01 or (not is_pi) or os.path.exists('/tmp/iris_boot_done'):
+            if (not is_pi) or os.path.exists('/tmp/iris_boot_done') or self._spawn_forced:
                 self._spawn_t += dt
                 if self._spawn_t >= self._SPAWN_DUR:
                     self._spawning = False
