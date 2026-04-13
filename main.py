@@ -112,14 +112,10 @@ class IrisOS:
             imu_state = self.imu.update()
             self.hand.update()
 
-            # Both caps held — freeze mirage at center
-            import time as _t
-            both_now = self.input._alpha_held and self.input._beta_held
-
-            if both_now and not self._both_held:
-                self._both_held  = True
-                self._both_since = _t.time()
+            # Both caps held — freeze mirage while held, pin on release
             if self._both_held:
+                import time as _t
+                both_now = self.input._alpha_held and self.input._beta_held
                 if not both_now:
                     held_secs = _t.time() - self._both_since
                     if held_secs >= 1.5:
@@ -128,7 +124,6 @@ class IrisOS:
                             m.elevation = 0.0
                         self.imu.reset()
                         self.scene.save()
-                        print('[IRIS] calling trigger_spawn')
                         self.scene.trigger_spawn()
                         print('[IRIS] Mirage pinned')
                     self._both_held = False
@@ -216,6 +211,10 @@ class IrisOS:
         if event == EVT_HOME:
             if self.state in (STATE_APP, STATE_OVERLAY):
                 self.close_app()
+            elif self.state == STATE_MENU:
+                import time as _t
+                self._both_held  = True
+                self._both_since = _t.time()
         elif event == EVT_CONFIRM:
             self.scene.confirm_selection(self)
         elif event == EVT_BACK:
