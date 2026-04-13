@@ -114,26 +114,28 @@ class IrisOS:
             imu_state = self.imu.update()
             self.hand.update()
 
-            # Both caps held — freeze mirage while held, pin on release
-            if self._both_held:
-                import time as _t
-                both_now = self.input._alpha_held and self.input._beta_held
-                if not both_now:
-                    held_secs = _t.time() - self._both_since
-                    if held_secs >= 1.5:
-                        for m in self.scene.mirages:
-                            m.azimuth   = imu_state.yaw
-                            m.elevation = 0.0
-                        self.imu.reset()
-                        self.scene.save()
-                        self._pin_anim  = self._PIN_DUR
-                        print('[IRIS] Mirage pinned')
-                    self._both_held = False
-                    self._pinned    = False
-                else:
-                    self._pinned    = True
-                    imu_state.yaw   = self.scene.mirages[0].azimuth if self.scene.mirages else 0.0
-                    imu_state.pitch = 0.0
+            # Both caps held — detect via direct polling
+            import time as _t
+            both_now = self.input._alpha_held and self.input._beta_held
+            if both_now and not self._both_held:
+                self._both_held  = True
+                self._both_since = _t.time()
+            elif not both_now and self._both_held:
+                held_secs = _t.time() - self._both_since
+                if held_secs >= 1.5:
+                    for m in self.scene.mirages:
+                        m.azimuth   = imu_state.yaw
+                        m.elevation = 0.0
+                    self.imu.reset()
+                    self.scene.save()
+                    self._pin_anim = self._PIN_DUR
+                    print('[IRIS] Mirage pinned')
+                self._both_held = False
+                self._pinned    = False
+            elif both_now and self._both_held:
+                self._pinned    = True
+                imu_state.yaw   = self.scene.mirages[0].azimuth if self.scene.mirages else 0.0
+                imu_state.pitch = 0.0
             self._dlp_timer += dt
             if self._dlp_timer >= 30.0 and self._dlp_bus:
                 self._dlp_timer = 0.0
@@ -165,16 +167,15 @@ class IrisOS:
                     self._active_app.update(dt)
                 self.scene.update(imu_state, dt, self.hand)
 
-            # Pin animation — quick zoom pulse
+            # Pin animation — sine scale pulse
             if self._pin_anim > 0.0:
                 self._pin_anim -= dt
-                from core.geometry import ease_out
-                t = self._pin_anim / self._PIN_DUR
-                scale = 1.0 + 0.08 * t
+                import math as _m
+                t = 1.0 - (self._pin_anim / self._PIN_DUR)
+                scale = 1.0 + 0.06 * _m.sin(t * _m.pi)
                 pw = max(1, int(WIDTH * scale))
                 ph = max(1, int(HEIGHT * scale))
                 pulsed = pygame.transform.scale(canvas, (pw, ph))
-                pulsed.set_alpha(int(255 * t + 200 * (1-t)))
                 prect = pulsed.get_rect(center=(WIDTH//2, HEIGHT//2))
                 screen.fill(BLACK)
                 screen.blit(pulsed, prect)
@@ -229,23 +230,12 @@ class IrisOS:
         if event == EVT_HOME:
             if self.state in (STATE_APP, STATE_OVERLAY):
                 self.close_app()
-            elif self.state == STATE_MENU:
-                import time as _t
-                self._both_held  = True
-                self._both_since = _t.time()
         elif event == EVT_CONFIRM:
             self.scene.confirm_selection(self)
         elif event == EVT_BACK:
             if self.state == STATE_APP:
                 self.close_app()
-            elif self.state == STATE_MENU:
-                for m in self.scene.mirages:
-                    m.azimuth   = self.imu.state.yaw
-                    m.elevation = 0.0
-                self.imu.reset()
-                self.scene.save()
-                self.scene.trigger_spawn()
-                print('[IRIS] Mirage recentered via back')
+
 
     def _handle_key(self, key):
         if key == pygame.K_ESCAPE:
