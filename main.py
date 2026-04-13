@@ -79,6 +79,8 @@ class IrisOS:
         self._active_app = None
         self._both_held  = False
         self._both_since = 0.0
+        self._pin_anim   = 0.0
+        self._PIN_DUR    = 0.4
         signal.signal(signal.SIGTERM, self._handle_sigterm)
         self._dlp_timer  = 30.0  # fire on first frame
         try:
@@ -124,7 +126,7 @@ class IrisOS:
                             m.elevation = 0.0
                         self.imu.reset()
                         self.scene.save()
-                        self.scene.trigger_spawn()
+                        self._pin_anim  = self._PIN_DUR
                         print('[IRIS] Mirage pinned')
                     self._both_held = False
                     self._pinned    = False
@@ -162,6 +164,22 @@ class IrisOS:
                     self._active_app.draw_fullscreen(canvas)
                     self._active_app.update(dt)
                 self.scene.update(imu_state, dt, self.hand)
+
+            # Pin animation — quick zoom pulse
+            if self._pin_anim > 0.0:
+                self._pin_anim -= dt
+                from core.geometry import ease_out
+                t = self._pin_anim / self._PIN_DUR
+                scale = 1.0 + 0.08 * t
+                pw = max(1, int(WIDTH * scale))
+                ph = max(1, int(HEIGHT * scale))
+                pulsed = pygame.transform.scale(canvas, (pw, ph))
+                pulsed.set_alpha(int(255 * t + 200 * (1-t)))
+                prect = pulsed.get_rect(center=(WIDTH//2, HEIGHT//2))
+                screen.fill(BLACK)
+                screen.blit(pulsed, prect)
+                pygame.display.flip()
+                continue
 
             roll = imu_state.roll if not self._pinned else 0.0
             screen_center = (WIDTH // 2, HEIGHT // 2)
