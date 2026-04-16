@@ -30,6 +30,7 @@ def _get_cursor():
     return _CURSOR_SURF
 from apps.placeholder_app import PlaceholderApp
 from apps.system_app    import SystemApp
+from apps.testgame_app import TestgameApp #includes testgame
 
 # ── Tuning ────────────────────────────────────────────────────────────────────
 
@@ -44,7 +45,7 @@ PX_PER_DEGREE_PITCH = 24
 def default_apps():
     return [
         None,
-        PlaceholderApp('Navigation'),
+        TestgameApp(),
         SystemApp(),
         PlaceholderApp('Media'),
         PlaceholderApp('Settings'),
