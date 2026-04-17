@@ -1,10 +1,11 @@
 """
 apps/system_app.py
-IRIS System App — Minimal widget + full Mirage GUI dashboard
+IRIS System App — Integrated telemetry (ESP + WiFi + BT)
 """
 
 import pygame
-import time
+import math
+import subprocess
 from apps.base_app import BaseApp
 
 
@@ -12,9 +13,15 @@ _MONO_BOLD = 'assets/fonts/Rajdhani-Bold.ttf'
 
 
 # -------------------------
+# IMU (placeholder)
+# -------------------------
+def _get_imu_angles():
+    return 0.0, 0.0
+
+
+# -------------------------
 # System reads
 # -------------------------
-
 def _read_cpu_temp():
     try:
         with open('/sys/class/thermal/thermal_zone0/temp') as f:
@@ -44,7 +51,7 @@ def _read_cpu_percent():
         if dt == 0:
             return 0.0
 
-        return 100.0 * (1 - di / dt)
+        return round(100.0 * (1 - di / dt), 1)
 
     except:
         return 0.0
@@ -61,44 +68,72 @@ def _read_mem_percent():
         total = info.get("MemTotal", 1)
         avail = info.get("MemAvailable", 0)
 
-        return 100.0 * (1 - avail / total)
+        return round(100.0 * (1 - avail / total), 1)
 
     except:
         return 0.0
 
 
 # -------------------------
+# Connectivity
+# -------------------------
+def _read_wifi():
+    try:
+        ssid = subprocess.check_output(["iwgetid", "-r"], text=True).strip()
+        link = subprocess.check_output(["iwconfig"], text=True)
+
+        strength = 0
+        for line in link.splitlines():
+            if "Signal level" in line:
+                part = line.split("Signal level=")[1]
+                strength = int(part.split(" ")[0])
+                break
+
+        return ssid, strength
+    except:
+        return None, 0
+
+
+def _read_bt():
+    try:
+        out = subprocess.check_output(["hciconfig"], text=True)
+        return "UP RUNNING" in out
+    except:
+        return False
+
+
+# -------------------------
 # Interpretation
 # -------------------------
-
 def _state(label, v):
+
     if label == "CPU":
-        if v < 30:
-            return "steady", False
-        if v < 70:
-            return "loaded", False
-        return "heavy load", True
+        if v < 30: return "steady", False
+        if v < 70: return "loaded", False
+        return "heavy", True
 
     if label == "TEMP":
-        if v < 60:
-            return "cool", False
-        if v < 80:
-            return "warm", True
+        if v < 60: return "cool", False
+        if v < 80: return "warm", True
         return "hot", True
 
     if label == "MEM":
-        if v < 60:
-            return "stable", False
-        if v < 80:
-            return "tight", True
+        if v < 60: return "stable", False
+        if v < 80: return "tight", True
         return "critical", True
 
     if label == "FPS":
-        if v > 50:
-            return "fluid", False
-        if v > 30:
-            return "stable", False
-        return "lagging", True
+        if v > 35: return "good", False
+        if v > 20: return "ok", False
+        return "low", True
+
+    if label == "WIFI":
+        if v > -60: return "strong", False
+        if v > -75: return "ok", False
+        return "weak", True
+
+    if label == "BT":
+        return ("on", False) if v > 0 else ("off", True)
 
     return "unknown", False
 
@@ -106,62 +141,86 @@ def _state(label, v):
 # -------------------------
 # App
 # -------------------------
-
 class SystemApp(BaseApp):
+
     name = "System"
-    description = "Mirage system dashboard"
+    description = "System status"
 
     _UPDATE_INTERVAL = 1.5
 
-    def __init__(self):
+    def __init__(self, input_handler=None):
         super().__init__()
+
+        self.input = input_handler
 
         self.timer = 0.0
 
-        # raw values
         self.cpu = 0.0
         self.temp = 0.0
         self.mem = 0.0
         self.fps = 60
 
-        # subsystem flags
-        self.imu_ok = True
+        self.wifi_ssid = None
+        self.wifi_strength = 0
+        self.bt_ok = False
         self.esp_ok = False
-        self.wifi_ok = True
 
-        # fonts
-        self.title_font = pygame.font.Font(_MONO_BOLD, 26)
-        self.body_font = pygame.font.Font(_MONO_BOLD, 18)
-        self.small_font = pygame.font.Font(_MONO_BOLD, 14)
+        # Fonts
+        self.title_font = pygame.font.Font(_MONO_BOLD, 32)
+        self.body_font  = pygame.font.Font(_MONO_BOLD, 20)
+        self.small_font = pygame.font.Font(_MONO_BOLD, 16)
 
-        self.icon = self.small_font.render("SYS", True, (255, 255, 255))
+        # Mirage surfaces
+        fn = pygame.font.Font(_MONO_BOLD, 20)
+        fi = pygame.font.Font(_MONO_BOLD, 16)
 
-        # UI cache
+        self._name_surf = fn.render("SYSTEM", True, (255,255,255))
+        self._icon_surf = fi.render("SY", True, (255,255,255))
+
+        # IMU offset
+        self.offset_x = 0
+        self.offset_y = 0
+        self.smooth = 0.1
+
         self.full_lines = []
         self.warnings = []
 
     # -------------------------
-    # Update
-    # -------------------------
     def update(self, dt):
+
         self.timer += dt
 
         if dt > 0:
             self.fps = int(1.0 / dt)
 
+        yaw, pitch = _get_imu_angles()
+
+        tx = yaw * 200
+        ty = pitch * 200
+
+        self.offset_x += (tx - self.offset_x) * self.smooth
+        self.offset_y += (ty - self.offset_y) * self.smooth
+
         if self.timer >= self._UPDATE_INTERVAL:
             self.timer = 0.0
 
-            self.cpu = _read_cpu_percent()
+            self.cpu  = _read_cpu_percent()
             self.temp = _read_cpu_temp()
-            self.mem = _read_mem_percent()
+            self.mem  = _read_mem_percent()
 
-            self._build_full_ui()
+            self.wifi_ssid, self.wifi_strength = _read_wifi()
+            self.bt_ok = _read_bt()
+
+            if self.input:
+                self.esp_ok = self.input._connected
+            else:
+                self.esp_ok = False
+
+            self._build_ui()
 
     # -------------------------
-    # Build UI data
-    # -------------------------
-    def _build_full_ui(self):
+    def _build_ui(self):
+
         self.full_lines = []
         self.warnings = []
 
@@ -170,6 +229,8 @@ class SystemApp(BaseApp):
             ("TEMP", self.temp),
             ("MEM", self.mem),
             ("FPS", self.fps),
+            ("WIFI", self.wifi_strength),
+            ("BT", 100 if self.bt_ok else 0),
         ]
 
         for name, val in metrics:
@@ -177,115 +238,111 @@ class SystemApp(BaseApp):
             self.full_lines.append((name, val, state))
 
             if warn:
-                self.warnings.append(f"{name}: {state}")
+                self.warnings.append(f"{name} {state}")
 
-        if not self.imu_ok:
-            self.warnings.append("IMU failure")
         if not self.esp_ok:
-            self.warnings.append("ESP32 offline")
-        if not self.wifi_ok:
-            self.warnings.append("WiFi disconnected")
+            self.warnings.append("esp offline")
 
-    # -------------------------
-    # Icon
+        if not self.wifi_ssid:
+            self.warnings.append("wifi disconnected")
+
+        if not self.bt_ok:
+            self.warnings.append("bluetooth off")
+
     # -------------------------
     def draw_icon(self, surface, center, radius):
-        r = self.icon.get_rect(center=center)
-        surface.blit(self.icon, r)
+        r = self._icon_surf.get_rect(center=center)
+        surface.blit(self._icon_surf, r)
 
-    # -------------------------
-    # Widget (minimal)
     # -------------------------
     def draw_widget(self, surface, rect):
-        cpu_txt = self.small_font.render(f"CPU {self.cpu:.0f}%", True, (255, 255, 255))
-        temp_txt = self.small_font.render(f"T {self.temp:.0f}C", True, (255, 255, 255))
-        mem_txt = self.small_font.render(f"M {self.mem:.0f}%", True, (255, 255, 255))
 
-        surface.blit(cpu_txt, (rect.centerx - cpu_txt.get_width() // 2, rect.top + 10))
-        surface.blit(temp_txt, (rect.centerx - temp_txt.get_width() // 2, rect.top + 30))
-        surface.blit(mem_txt, (rect.centerx - mem_txt.get_width() // 2, rect.top + 50))
+        nr = self._name_surf.get_rect(centerx=rect.centerx, top=rect.top + 6)
+        surface.blit(self._name_surf, nr)
 
-    # -------------------------
-    # Fullscreen GUI
-    # -------------------------
-    def draw_fullscreen(self, surface):
-        surface.fill((10, 10, 12))
+        y = nr.bottom + 6
 
-        # TITLE
-        title = self.title_font.render("SYSTEM MIRAGE", True, (255, 255, 255))
-        surface.blit(title, (40, 30))
-
-        # PANEL HELPER
-        def panel(rect, title_text):
-            pygame.draw.rect(surface, (20, 20, 25), rect, border_radius=12)
-            pygame.draw.rect(surface, (60, 60, 70), rect, 2, border_radius=12)
-
-            t = self.small_font.render(title_text, True, (180, 180, 220))
-            surface.blit(t, (rect.x + 12, rect.y + 8))
-
-        # METRICS PANEL
-        metrics_rect = pygame.Rect(40, 80, 400, 220)
-        panel(metrics_rect, "METRICS")
-
-        def metric_card(x, y, label, value, state):
-            w, h = 170, 60
-            r = pygame.Rect(x, y, w, h)
-
-            pygame.draw.rect(surface, (30, 30, 35), r, border_radius=10)
-
-            color = (100, 200, 255)
-            if "heavy" in state or "hot" in state or "critical" in state:
-                color = (255, 100, 100)
-            elif "warm" in state or "tight" in state:
-                color = (255, 200, 100)
-
-            pygame.draw.rect(surface, color, (r.x, r.y, 6, h), border_radius=6)
-
-            lbl = self.small_font.render(label, True, (180, 180, 180))
-            val = self.body_font.render(f"{value:.1f}", True, (255, 255, 255))
-            st = self.small_font.render(state, True, color)
-
-            surface.blit(lbl, (r.x + 12, r.y + 6))
-            surface.blit(val, (r.x + 12, r.y + 22))
-            surface.blit(st, (r.x + 12, r.y + 42))
-
-        base_x = metrics_rect.x + 15
-        base_y = metrics_rect.y + 30
-
-        for i, (name, val, state) in enumerate(self.full_lines):
-            x = base_x + (i % 2) * 190
-            y = base_y + (i // 2) * 80
-            metric_card(x, y, name, val, state)
-
-        # STATUS PANEL
-        status_rect = pygame.Rect(460, 80, 300, 220)
-        panel(status_rect, "LINK STATUS")
-
-        status_items = [
-            ("IMU", self.imu_ok),
-            ("ESP32", self.esp_ok),
-            ("WiFi", self.wifi_ok),
+        lines = [
+            f"CPU  {self.cpu:.0f}%",
+            f"TMP  {self.temp:.0f}C",
+            f"MEM  {self.mem:.0f}%"
         ]
 
-        y = status_rect.y + 40
-        for name, ok in status_items:
-            col = (120, 255, 120) if ok else (255, 100, 100)
-            txt = f"{name}: {'OK' if ok else 'OFF'}"
+        if self.wifi_ssid:
+            lines.append(f"WIFI {self.wifi_strength}")
 
-            surf = self.body_font.render(txt, True, col)
-            surface.blit(surf, (status_rect.x + 20, y))
-            y += 40
+        if self.fps < 25:
+            lines.append(f"FPS  {self.fps}")
 
-        # WARNINGS PANEL
-        warn_rect = pygame.Rect(40, 320, 720, 140)
-        panel(warn_rect, "WARNINGS")
+        for line in lines[:4]:
+            surf = self.small_font.render(line, True, (220,220,220))
+            sr = surf.get_rect(centerx=rect.centerx, top=y)
+            surface.blit(surf, sr)
+            y += surf.get_height() + 2
 
-        if not self.warnings:
-            ok = self.body_font.render("No anomalies detected", True, (120, 255, 120))
-            surface.blit(ok, (warn_rect.x + 20, warn_rect.y + 50))
-        else:
-            y = warn_rect.y + 40
-            for w in self.warnings[:4]:
-                surf = self.small_font.render("⚠ " + w, True, (255, 120, 120))
-                surface.blit(surf, (warn_rect.x + 20, y))
-                y += 22
+    # -------------------------
+    def draw_fullscreen(self, surface):
+
+        W, H = surface.get_size()
+
+        world = pygame.Surface((W, H), pygame.SRCALPHA)
+        world.fill((0, 0, 0))
+
+        margin = 16
+        y = 10
+
+        title = self.title_font.render("SYSTEM", True, (255,255,255))
+        world.blit(title, (W//2 - title.get_width()//2, y))
+        y += title.get_height() + 10
+
+        def panel(x, y, w, h, label):
+            r = pygame.Rect(x, y, w, h)
+            pygame.draw.rect(world, (20,20,25), r, border_radius=10)
+            pygame.draw.rect(world, (60,60,70), r, 2, border_radius=10)
+
+            t = self.small_font.render(label, True, (180,180,220))
+            world.blit(t, (x+10, y+5))
+            return r
+
+        panel_w = W - margin*2
+
+        rows = math.ceil(len(self.full_lines)/2)
+        card_h = 60
+        m_h = 30 + rows*(card_h+8)
+
+        mrect = panel(margin, y, panel_w, m_h, "metrics")
+
+        card_w = (panel_w - 30)//2
+
+        for i, (name, val, state) in enumerate(self.full_lines):
+
+            cx = mrect.x + 10 + (i % 2)*(card_w+10)
+            cy = mrect.y + 25 + (i // 2)*(card_h+8)
+
+            r = pygame.Rect(cx, cy, card_w, card_h)
+            pygame.draw.rect(world, (30,30,35), r, border_radius=8)
+
+            col = (100,200,255)
+            if "hot" in state or "critical" in state or "low" in state:
+                col = (255,100,100)
+
+            pygame.draw.rect(world, col, (r.x, r.y, 4, card_h))
+
+            world.blit(self.small_font.render(name, True, (180,180,180)), (r.x+8, r.y+5))
+            world.blit(self.body_font.render(f"{val:.0f}", True, (255,255,255)), (r.x+8, r.y+25))
+
+        y = mrect.bottom + 10
+
+        max_warn = max(1, (H - y - 20)//20)
+        warn_list = self.warnings[:max_warn]
+
+        w_h = 30 + len(warn_list)*20
+        wrect = panel(margin, y, panel_w, w_h, "warnings")
+
+        wy = wrect.y + 25
+        for w in warn_list:
+            txt = self.small_font.render(w, True, (255,120,120))
+            world.blit(txt, (wrect.x+10, wy))
+            wy += 20
+
+        surface.blit(world, (int(self.offset_x), int(self.offset_y)))
