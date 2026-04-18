@@ -78,6 +78,9 @@ class EtchApp(BaseApp):
         self._hand_x      = 0.5
         self._hand_y      = 0.5
 
+        # Cap draw state — set by kernel each frame
+        self._cap_draw    = False   # beta held = draw
+
         # UI fonts
         self._font      = pygame.font.Font(_MONO_BOLD, 14)
         self._font_big  = pygame.font.Font(_MONO_BOLD, 22)
@@ -121,9 +124,9 @@ class EtchApp(BaseApp):
             self._hand_active = True
             self._hand_x      = hand.x
             self._hand_y      = hand.y
-            # Pinch = draw
+            # Pinch or cap held = draw
             pinch = getattr(hand, 'pinch', False)
-            if pinch:
+            if pinch or self._cap_draw:
                 self._do_draw_hand()
             else:
                 self._last_cx = None
@@ -131,9 +134,15 @@ class EtchApp(BaseApp):
                 self._drawing = False
         else:
             self._hand_active = False
-            self._last_cx     = None
-            self._last_cy     = None
-            self._drawing     = False
+            # Cap draw still works without hand — draws at screen center
+            if self._cap_draw:
+                self._hand_x = 0.5
+                self._hand_y = 0.5
+                self._do_draw_hand()
+            else:
+                self._last_cx = None
+                self._last_cy = None
+                self._drawing = False
 
     def on_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -147,8 +156,12 @@ class EtchApp(BaseApp):
             pass   # pinch draw handled in on_imu via hand.pinch flag
 
     def _handle_beta(self):
-        """Called by kernel beta cap tap."""
-        self._cycle_color()
+        """Beta tap — cycle color forward."""
+        self._cycle_color(1)
+
+    def _handle_alpha(self):
+        """Alpha tap — cycle color backward."""
+        self._cycle_color(-1)
 
     def _handle_alpha_held(self):
         """Called by kernel alpha cap hold — clear canvas."""
@@ -189,8 +202,8 @@ class EtchApp(BaseApp):
         self._last_cy = cy
         self._drawing = True
 
-    def _cycle_color(self):
-        self._color_idx = (self._color_idx + 1) % len(COLORS)
+    def _cycle_color(self, direction=1):
+        self._color_idx = (self._color_idx + direction) % len(COLORS)
         self._color     = COLORS[self._color_idx]
 
     def _clear(self):
@@ -268,7 +281,7 @@ class EtchApp(BaseApp):
 
         # Instructions
         hint = self._font_big.render(
-            'pinch=draw  β=color  hold α=clear', True, (60, 60, 60))
+            'hold β=draw  tap β/α=color', True, (60, 60, 60))
         surface.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 24))
 
     def draw_icon(self, surface, center, radius):

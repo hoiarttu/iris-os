@@ -33,7 +33,7 @@ Keyboard shortcuts (dev):
   X           beta cap (confirm)
 """
 
-import sys, signal, math as _m
+import sys, signal, math as _m, subprocess, os
 import pygame
 
 from core.display          import (screen, canvas, clock, CENTER,
@@ -125,6 +125,19 @@ class IrisOS:
         self._home_hint_surf = _f.render('both caps = home', True, (60, 60, 60))
 
     def boot(self):
+        # Auto-start hand tracker as background process
+        try:
+            tracker_path = os.path.join(os.path.dirname(__file__), 'hand_tracker.py')
+            self._tracker_proc = subprocess.Popen(
+                [sys.executable, tracker_path],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            print('[IRIS] Hand tracker started')
+        except Exception as e:
+            print(f'[IRIS] Hand tracker failed to start: {e}')
+            self._tracker_proc = None
+
         if IMU_CAL_SAMPLES > 0:
             self.imu.calibrate(IMU_CAL_SAMPLES)
         print('[IRIS] Boot complete.')
@@ -179,9 +192,10 @@ class IrisOS:
                     imu_state.pitch = 0.0
                     imu_state.roll  = 0.0
 
-            # ── Single cap hold tracking ──────────────────────────────────────
-            # (alpha/beta fire via get_events, but hold dur enforced here)
-            # Handled in _handle_cap via input_handler timing
+            # ── Cap hold → app draw state ────────────────────────────────────────
+            if self._active_app and hasattr(self._active_app, '_cap_draw'):
+                self._active_app._cap_draw = (self.input._beta_held
+                                               and not self.input._alpha_held)
 
             # ── DLP keepalive ─────────────────────────────────────────────────
             self._dlp_timer += dt
@@ -401,17 +415,21 @@ class IrisOS:
         Per-app cap_hold_secs enforced by InputHandler timing.
         """
         if event == EVT_BACK:
-            # In-app back navigation — forward to app
+            # Alpha tap — call _handle_alpha if app has it, else navigate
             if self._active_app:
-                self._active_app.on_gesture('swipe_left')
-            elif self.state == STATE_MENU:
-                pass   # nothing to go back to in menu
+                if hasattr(self._active_app, '_handle_alpha'):
+                    self._active_app._handle_alpha()
+                else:
+                    self._active_app.on_gesture('swipe_left')
 
         elif event == EVT_CONFIRM:
             if self.state == STATE_MENU:
                 self.scene.confirm_selection(self)
             elif self._active_app:
-                self._active_app.on_gesture('pinch')
+                if hasattr(self._active_app, '_handle_beta'):
+                    self._active_app._handle_beta()
+                else:
+                    self._active_app.on_gesture('pinch')
 
 
 
@@ -462,6 +480,9 @@ class IrisOS:
             screen.fill(BLACK)
             pygame.display.flip()
             pygame.time.wait(500)
+        if hasattr(self, '_tracker_proc') and self._tracker_proc:
+            self._tracker_proc.terminate()
+            print('[IRIS] Hand tracker stopped')
         pygame.quit()
         print('[IRIS] Shutdown.')
         sys.exit(0)

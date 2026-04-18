@@ -92,7 +92,8 @@ class MirageManager:
         self._spawn_t      = 0.0
         self._spawning     = True
         self._spawn_forced = False
-        self._SPAWN_DUR    = 1.2
+        self._SPAWN_DUR    = 2.0
+        self._spawn_frames = 0   # frame counter — must see N frames
         self._zoom_t       = {}
 
         # Render-side cursor smoothing
@@ -141,6 +142,7 @@ class MirageManager:
 
     def trigger_spawn(self):
         self._spawn_t      = 0.0
+        self._spawn_frames = 0
         self._spawning     = True
         self._spawn_forced = True
 
@@ -187,8 +189,11 @@ class MirageManager:
         self._smooth_yaw = lerp_angle(self._smooth_yaw, imu_state.yaw, SMOOTH_T)
 
         if self._spawning:
-            self._spawn_t += dt
-            if self._spawn_t >= self._SPAWN_DUR:
+            # Cap dt to avoid single huge frame skipping animation
+            self._spawn_t += min(dt, 0.05)
+            self._spawn_frames += 1
+            # Must run for both min duration AND min frames
+            if self._spawn_t >= self._SPAWN_DUR and self._spawn_frames >= 30:
                 self._spawning = False
 
         # Live drag — mirage follows hand while grabbed
