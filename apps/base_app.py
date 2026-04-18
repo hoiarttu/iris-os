@@ -3,15 +3,41 @@ apps/base_app.py — BaseApp contract
 ─────────────────────────────────────────────────────────────────────────────
 All methods are no-ops by default.
 Apps only override what they need.
+
+pin_mode:
+  'pinned'  fullscreen canvas offset by IMU delta from mirage origin
+            looking away = black. Default.
+  'free'    always centered, ignores IMU (SystemApp etc.)
+  'world'   app handles IMU itself via on_imu() (TestgameApp)
+
+exit:
+  No per-app exit mode. Exit is always:
+    Both caps hold 1.5s  → home (system, unkillable)
+    Fist + pull          → home
+  Single cap alpha = back/navigate (in-app only, never exits)
+  Single cap beta  = confirm/select
+
+cap_hold_secs:
+  Minimum hold duration before alpha/beta register. Per-app.
+  0.0 = instant (default). Raise for immersive apps (e.g. 1.5 for games).
 """
 
 import pygame
 
 
 class BaseApp:
-    name        = 'App'
-    description = ''
-    icon_path   = None   # path to PNG asset, or None to use draw_icon()
+    name          = 'App'
+    description   = ''
+    icon_path     = None
+
+    # Spatial
+    pin_mode      = 'pinned'   # 'pinned' | 'free' | 'world'
+
+    # Cursor
+    show_cursor   = True
+
+    # Input
+    cap_hold_secs = 0.0        # min hold before alpha/beta register
 
     # State
     focused = False
@@ -49,26 +75,34 @@ class BaseApp:
         self.active  = False
         self.focused = False
 
-    # ── Rendering ─────────────────────────────────────────────────────────────
+    # ── Input hooks (called by kernel) ────────────────────────────────────────
 
-    def draw_icon(self, surface: pygame.Surface, center: tuple, radius: float):
-        """
-        Draw app icon inside hex.
-        Default: two-letter abbreviation.
-        Override with PNG blit when assets are ready.
-        """
-        pass   # subclasses implement
+    def on_event(self, event):
+        """Raw pygame event forwarded by kernel each frame."""
+        pass
 
-    def draw_widget(self, surface: pygame.Surface, rect: pygame.Rect):
+    def on_imu(self, imu_state, hand=None):
+        """IMU + hand state, called every frame in STATE_APP."""
+        pass
+
+    def on_gesture(self, gesture: str):
         """
-        Draw centre widget when this app is focused or default.
-        Override in each app.
+        Named gesture string forwarded by kernel.
+        Kernel handles: 'grab_pull' (home), 'pinch' (select) at system level.
+        Apps receive all gestures and can act on swipe_up/down for scroll etc.
         """
         pass
 
+    # ── Rendering ─────────────────────────────────────────────────────────────
+
+    def draw_icon(self, surface: pygame.Surface, center: tuple, radius: float):
+        """Draw app icon inside hex."""
+        pass
+
+    def draw_widget(self, surface: pygame.Surface, rect: pygame.Rect):
+        """Draw centre widget when focused."""
+        pass
+
     def draw_fullscreen(self, surface: pygame.Surface):
-        """
-        Draw full screen when app is in STATE_APP.
-        Override in each app.
-        """
+        """Draw full screen when app is in STATE_APP."""
         surface.fill((0, 0, 0))

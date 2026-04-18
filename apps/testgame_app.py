@@ -109,6 +109,9 @@ class Pointer(pygame.sprite.Sprite): #Class for pointer. Stays stationary on scr
 class TestgameApp(BaseApp): #The main app
     name        = 'Testgame'
     description = 'Shoot Targets'
+    imu_mode      = 'world'   # kernel sends raw imu + hand each frame via on_imu()
+    show_cursor   = False     # pointer sprite IS the cursor in this app
+    cap_hold_secs = 1.5       # must hold cap before alpha/beta register
     _UPDATE_INTERVAL = 1/FPS
 
     def __init__(self):
@@ -143,28 +146,51 @@ class TestgameApp(BaseApp): #The main app
         self.lastshoot=time.time()
         self.shoot=False
         
+        # IMU/hand pointer position (screen coords), set by on_imu()
+        self._ptr_x = float(WIDTH  // 2)
+        self._ptr_y = float(HEIGHT // 2)
+        
         
         
 
+
+    def on_event(self, event): #Kernel forwards events here instead of event.get()
+        if event.type == pygame.KEYDOWN:
+            if event.key == K_x:
+                self.shoot = True
+
+    def on_imu(self, imu_state, hand=None): #Called each frame with imu + hand state
+        if hand and hand.active:
+            # Hand takes over pointer when detected
+            self._ptr_x = hand.x * WIDTH
+            self._ptr_y = hand.y * HEIGHT
+            if getattr(hand, 'pinch', False):
+                self.shoot = True
+        else:
+            # IMU moves the world rect, pointer stays centred
+            self._ptr_x = WIDTH  / 2
+            self._ptr_y = HEIGHT / 2
+            self.BGrect.x = int(WIDTH  / 2 - GAMEAREA_WIDTH  / 2 - imu_state.yaw   * 28)
+            self.BGrect.y = int(HEIGHT / 2 - GAMEAREA_HEIGHT / 2 + imu_state.pitch * 24)
+
+    def on_gesture(self, gesture): #Named gestures from kernel gesture detector
+        if gesture == 'pinch':
+            self.shoot = True
 
     def update(self, dt: float):
         self._timer += dt
         if self._timer >= self._UPDATE_INTERVAL: #Waits unti it is time for next frame
             self._timer = 0.0
-            for event in pygame.event.get(): #Checks for exits. May need rework
-                if event.type == QUIT:
-                    pygame.quit()
-                    sys.exit() #May need rework
-                if event.type == pygame.KEYDOWN:
-                    if  event.key == K_z:
-                        self.close()
-                
-                
+            #Events now forwarded by kernel via on_event() — no event.get() needed here
+            
+            #Move pointer sprite to IMU/hand position (set each frame by on_imu)
+            self.P1.rect.center = (int(self._ptr_x), int(self._ptr_y))
+            
             #Moves pointer and targets according to their logic
             for entity in self.all_sprites:
                 entity.move()
                 
-            #Checks if player tries to shoot and it's been at least a second from previous shot, and sets shoot flag
+            #Shoot flag set by on_event (K_x), on_imu (pinch), or on_gesture — rate limited here
             if pygame.key.get_pressed()[K_x] and time.time() - self.lastshoot > 1:
                 self.shoot=True
                 self.lastshoot=time.time()

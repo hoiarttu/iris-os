@@ -18,6 +18,8 @@ class HandClient:
         self.x      = 0.5
         self.y      = 0.5
         self.pinch  = False
+        self.fist   = False   # set True when landmark model detects closed fist
+        self.scale  = 1.0    # relative palm bbox scale (for grab push/pull detection)
         self.active = False   # True when hand is detected
         self._sock  = None
         self._buf   = ''

@@ -145,6 +145,7 @@ class SystemApp(BaseApp):
 
     name = "System"
     description = "System status"
+    pin_mode = 'free'   # always centred, telemetry should always be visible
 
     _UPDATE_INTERVAL = 1.5
 
