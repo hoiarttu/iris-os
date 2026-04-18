@@ -174,10 +174,16 @@ class IrisOS:
                     self.close_app()
                 self._both_held = False
             elif both_now and self._both_held:
-                # While held, freeze IMU to current mirage pos
+                # While held, freeze display to mirage pos
+                # Also reset IMU backend so no drift accumulates
                 if self.scene.mirages:
                     imu_state.yaw   = self.scene.mirages[0].azimuth
                     imu_state.pitch = 0.0
+                    imu_state.roll  = 0.0
+                    # Reset backend state to match so no snap on release
+                    self.imu._backend._state.yaw   = imu_state.yaw
+                    self.imu._backend._state.pitch  = 0.0
+                    self.imu._backend._state.roll   = 0.0
 
             # ── Single cap hold tracking ──────────────────────────────────────
             # (alpha/beta fire via get_events, but hold dur enforced here)

@@ -31,6 +31,7 @@ def _get_cursor():
 from apps.placeholder_app import PlaceholderApp
 from apps.system_app      import SystemApp
 from apps.testgame_app    import TestgameApp
+from apps.etch_app        import EtchApp
 
 # ── Tuning ────────────────────────────────────────────────────────────────────
 
@@ -48,7 +49,7 @@ def default_apps():
         None,
         TestgameApp(),
         SystemApp(),
-        PlaceholderApp('Media'),
+        EtchApp(),
         PlaceholderApp('Settings'),
         PlaceholderApp('Comms'),
         PlaceholderApp('Vision'),
