@@ -40,7 +40,7 @@ DWELL_SECS          = 0.6
 DEV_NO_DWELL        = True
 PX_PER_DEGREE_YAW   = 28
 PX_PER_DEGREE_PITCH = 24
-CURSOR_SMOOTH       = 0.18   # render-side lerp (lower = more smoothing)
+CURSOR_SMOOTH       = 0.35   # render-side lerp (lower = more smoothing)
 
 # ── Default apps ──────────────────────────────────────────────────────────────
 
