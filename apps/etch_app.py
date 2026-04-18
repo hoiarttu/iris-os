@@ -106,7 +106,7 @@ class EtchApp(BaseApp):
         # Wrap yaw delta to -180..180
         dyaw = (dyaw + 180) % 360 - 180
         cx = int(CANVAS_W // 2 + dyaw   * PX_PER_YAW)
-        cy = int(CANVAS_H // 2 + dpitch * PX_PER_PITCH)
+        cy = int(CANVAS_H // 2 - dpitch * PX_PER_PITCH)
         ox = (cx - WIDTH  // 2) % CANVAS_W
         oy = cy - HEIGHT // 2
         oy = max(0, min(CANVAS_H - HEIGHT, oy))
