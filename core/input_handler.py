@@ -76,19 +76,13 @@ class InputHandler:
 
             both = alpha and beta
 
-            # Both caps = home
-            if both and not self._both_fired:
-                events.append(EVT_HOME)
-                self._both_fired = True
-            if not both:
-                self._both_fired = False
-
+            # Both caps handled entirely by main.py hold logic
             # Alpha alone released = back
-            if not alpha and self._alpha_held and not beta:
+            if not alpha and self._alpha_held and not both:
                 events.append(EVT_BACK)
 
             # Beta alone released = confirm
-            if not beta and self._beta_held and not alpha:
+            if not beta and self._beta_held and not both:
                 events.append(EVT_CONFIRM)
 
             self._alpha_held = alpha

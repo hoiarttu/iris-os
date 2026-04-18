@@ -187,12 +187,9 @@ class MirageManager:
         self._smooth_yaw = lerp_angle(self._smooth_yaw, imu_state.yaw, SMOOTH_T)
 
         if self._spawning:
-            is_pi = 'raspberrypi' in platform.node().lower()
-            if (not is_pi) or os.path.exists('/tmp/iris_boot_done') \
-                    or self._spawn_forced:
-                self._spawn_t += dt
-                if self._spawn_t >= self._SPAWN_DUR:
-                    self._spawning = False
+            self._spawn_t += dt
+            if self._spawn_t >= self._SPAWN_DUR:
+                self._spawning = False
 
         # Live drag — mirage follows hand while grabbed
         if self._grab_mirage and self._grab_hand_origin and hand and hand.active:

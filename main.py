@@ -168,22 +168,16 @@ class IrisOS:
             elif not both_now and self._both_held:
                 held = _t.time() - self._both_since
                 if held >= 1.5:
+                    # Long hold only — pin + home
                     self._do_pin_and_home(imu_state)
-                elif self.state == STATE_APP:
-                    # Short both-tap in app = exit app
-                    self.close_app()
+                # Short tap — do nothing
                 self._both_held = False
             elif both_now and self._both_held:
-                # While held, freeze display to mirage pos
-                # Also reset IMU backend so no drift accumulates
+                # While held, freeze display only — don't touch IMU backend
                 if self.scene.mirages:
                     imu_state.yaw   = self.scene.mirages[0].azimuth
                     imu_state.pitch = 0.0
                     imu_state.roll  = 0.0
-                    # Reset backend state to match so no snap on release
-                    self.imu._backend._state.yaw   = imu_state.yaw
-                    self.imu._backend._state.pitch  = 0.0
-                    self.imu._backend._state.roll   = 0.0
 
             # ── Single cap hold tracking ──────────────────────────────────────
             # (alpha/beta fire via get_events, but hold dur enforced here)
@@ -419,9 +413,7 @@ class IrisOS:
             elif self._active_app:
                 self._active_app.on_gesture('pinch')
 
-        elif event == EVT_HOME:
-            # Legacy — both-caps short tap now handled in run() loop
-            pass
+
 
     def _handle_key(self, key):
         if key == pygame.K_ESCAPE:
