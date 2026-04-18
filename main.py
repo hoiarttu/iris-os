@@ -167,10 +167,10 @@ class IrisOS:
             imu_state = self.imu.update()
             self.hand.update()
 
-            # ── Gesture detection ─────────────────────────────────────────────
-            gesture_list = self.gestures.update(self.hand)
-            for gesture in gesture_list:
-                self._handle_gesture(gesture)
+            # ── Gesture detection (disabled — no landmark model available) ──
+            # gesture_list = self.gestures.update(self.hand)
+            # for gesture in gesture_list:
+            #     self._handle_gesture(gesture)
 
             # ── Both-caps hold logic (pin + home, unkillable) ─────────────────
             import time as _t
@@ -181,9 +181,11 @@ class IrisOS:
             elif not both_now and self._both_held:
                 held = _t.time() - self._both_since
                 if held >= 1.5:
-                    # Long hold only — pin + home
+                    # Long hold — pin + home
                     self._do_pin_and_home(imu_state)
-                # Short tap — do nothing
+                elif held >= 0.3 and self.state == STATE_APP:
+                    # Medium tap in app — exit app
+                    self.close_app()
                 self._both_held = False
             elif both_now and self._both_held:
                 # While held, freeze display only — don't touch IMU backend

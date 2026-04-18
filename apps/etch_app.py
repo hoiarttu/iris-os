@@ -31,7 +31,7 @@ _MONO_BOLD = 'assets/fonts/Rajdhani-Bold.ttf'
 # ── Canvas config ─────────────────────────────────────────────────────────────
 
 CANVAS_W    = 2048   # pixels representing 360° yaw
-CANVAS_H    = 768    # pixels representing 120° pitch (-60 to +60)
+CANVAS_H    = 2048   # pixels representing 120° pitch (-60 to +60)
 PITCH_RANGE = 120.0  # degrees total
 PITCH_MIN   = -60.0
 
