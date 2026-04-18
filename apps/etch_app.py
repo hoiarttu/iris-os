@@ -43,6 +43,7 @@ COLORS = [
     (255,  80,  80),   # red
     (255, 220,  50),   # yellow
     (80,  255, 120),   # green
+    (0,   0,   0),     # black (erase)
 ]
 
 BRUSH_RADIUS = 3   # pixels on canvas
@@ -156,8 +157,9 @@ class EtchApp(BaseApp):
             pass   # pinch draw handled in on_imu via hand.pinch flag
 
     def _handle_beta(self):
-        """Beta tap — cycle color forward."""
-        self._cycle_color(1)
+        """Beta tap — cycle color forward (only if not drawing)."""
+        if not self._cap_draw:
+            self._cycle_color(1)
 
     def _handle_alpha(self):
         """Alpha tap — cycle color backward."""
@@ -186,14 +188,15 @@ class EtchApp(BaseApp):
         cy = max(0, min(CANVAS_H - 1, cy))
 
         if self._last_cx is not None:
-            # Draw line from last position to current (handles fast movement)
-            pygame.draw.line(self._canvas, self._color,
-                             (self._last_cx, self._last_cy),
-                             (cx, cy), BRUSH_RADIUS * 2)
-            # Handle wraparound seam in line drawing
-            if abs(cx - self._last_cx) > CANVAS_W // 2:
-                # Stroke crosses the seam — skip (avoids ugly horizontal line)
-                pass
+            # Skip line if crossing the wraparound seam
+            if abs(cx - self._last_cx) < CANVAS_W // 2:
+                pygame.draw.line(self._canvas, self._color,
+                                 (self._last_cx, self._last_cy),
+                                 (cx, cy), BRUSH_RADIUS * 2)
+            else:
+                # Seam crossing — just draw a dot at new position
+                pygame.draw.circle(self._canvas, self._color,
+                                    (cx, cy), BRUSH_RADIUS)
         else:
             pygame.draw.circle(self._canvas, self._color,
                                 (cx, cy), BRUSH_RADIUS)
@@ -281,7 +284,7 @@ class EtchApp(BaseApp):
 
         # Instructions
         hint = self._font_big.render(
-            'hold β=draw  tap β/α=color', True, (60, 60, 60))
+            'hold β=draw  β/α=color  black=last', True, (60, 60, 60))
         surface.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 24))
 
     def draw_icon(self, surface, center, radius):
