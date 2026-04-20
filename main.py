@@ -125,6 +125,11 @@ class IrisOS:
         # DLP power via GPIO 27
         self._dlp_on        = True
         self._dlp_off_timer = 0.0
+        self._dlp_still_timer = 0.0
+        self._DLP_STILL_DELAY = 10.0
+        self._DLP_MOVE_THRESH = 0.5
+        self._last_yaw        = 0.0
+        self._last_pitch      = 0.0
         self._DLP_OFF_DELAY = 1.0   # seconds off-screen before DLP powers down
         self._DLP_THRESHOLD = 30.0  # degrees off-mirage before considering blank
         try:
