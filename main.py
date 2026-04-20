@@ -364,30 +364,55 @@ class IrisOS:
         if not self._gpio:
             return
 
-        # Any cap input resets off-timer and keeps DLP on
+        # Any cap input = wake + reset timers
         cap_active = self.input._alpha_held or self.input._beta_held
+
+        # Movement detection — compare to last frame
+        from core.geometry import angle_diff
+        dyaw   = angle_diff(imu_state.yaw,   self._last_yaw)
+        dpitch = abs(imu_state.pitch - self._last_pitch)
+        moving = (dyaw + dpitch) / max(dt, 0.001) > self._DLP_MOVE_THRESH
+        self._last_yaw   = imu_state.yaw
+        self._last_pitch = imu_state.pitch
 
         # Check if mirage is in view
         in_view = False
         if self.scene.mirages:
-            from core.geometry import angle_diff
-            diff = angle_diff(imu_state.yaw, self.scene.mirages[0].azimuth)
+            diff    = angle_diff(imu_state.yaw, self.scene.mirages[0].azimuth)
             in_view = diff < self._DLP_THRESHOLD
 
-        if in_view or cap_active or self.state == STATE_APP:
-            # In view or input — reset timer, ensure DLP on
-            self._dlp_off_timer = 0.0
+        # Wake conditions
+        should_wake = cap_active or self.state == STATE_APP or (in_view and moving)
+
+        if should_wake:
+            self._dlp_off_timer   = 0.0
+            self._dlp_still_timer = 0.0
             if not self._dlp_on:
                 self._gpio.output(27, self._gpio.HIGH)
                 self._dlp_on = True
                 print('[IRIS] DLP on')
         else:
-            # Off-screen — count down
-            self._dlp_off_timer += dt
-            if self._dlp_on and self._dlp_off_timer >= self._DLP_OFF_DELAY:
+            # Count time off-screen
+            if not in_view:
+                self._dlp_off_timer += dt
+            else:
+                self._dlp_off_timer = 0.0
+
+            # Count time still
+            if not moving:
+                self._dlp_still_timer += dt
+            else:
+                self._dlp_still_timer = 0.0
+
+            # Sleep if off-screen too long OR still too long
+            off_screen_sleep = self._dlp_off_timer  >= self._DLP_OFF_DELAY
+            still_sleep      = self._dlp_still_timer >= self._DLP_STILL_DELAY
+
+            if self._dlp_on and (off_screen_sleep or still_sleep):
                 self._gpio.output(27, self._gpio.LOW)
                 self._dlp_on = False
-                print('[IRIS] DLP off')
+                reason = 'off-screen' if off_screen_sleep else 'no movement'
+                print(f'[IRIS] DLP off ({reason})')
 
     # ── Universal cursor ──────────────────────────────────────────────────────
 
