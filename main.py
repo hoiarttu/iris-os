@@ -114,7 +114,7 @@ class IrisOS:
 
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
-        self._dlp_timer = 30.0
+        self._dlp_timer = 0.0
         try:
             import smbus2
             self._dlp_bus = smbus2.SMBus(11)
@@ -124,7 +124,7 @@ class IrisOS:
         # DLP power via GPIO 27
         self._dlp_on        = True
         self._dlp_off_timer = 0.0
-        self._DLP_OFF_DELAY = 3.0   # seconds off-screen before DLP powers down
+        self._DLP_OFF_DELAY = 1.0   # seconds off-screen before DLP powers down
         self._DLP_THRESHOLD = 30.0  # degrees off-mirage before considering blank
         try:
             import RPi.GPIO as GPIO
@@ -227,7 +227,7 @@ class IrisOS:
 
             # ── DLP keepalive ─────────────────────────────────────────────────
             self._dlp_timer += dt
-            if self._dlp_timer >= 30.0 and self._dlp_bus:
+            if self._dlp_timer >= 0.1 and self._dlp_bus:
                 self._dlp_timer = 0.0
                 try:
                     self._dlp_bus.write_i2c_block_data(
