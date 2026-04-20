@@ -404,17 +404,18 @@ class IrisOS:
             else:
                 self._dlp_still_timer = 0.0
 
-            # Sleep if off-screen AND still (both required)
+            # Sleep if off-screen OR still too long
             # Apps can opt out with dlp_auto_off = False
             app_allows = (self._active_app is None or
                           getattr(self._active_app, 'dlp_auto_off', True))
             off_screen = self._dlp_off_timer  >= self._DLP_OFF_DELAY
             still      = self._dlp_still_timer >= self._DLP_STILL_DELAY
 
-            if self._dlp_on and off_screen and still and app_allows:
+            if self._dlp_on and (off_screen or still) and app_allows:
                 self._gpio.output(27, self._gpio.LOW)
                 self._dlp_on = False
-                print('[IRIS] DLP off (off-screen + still)')
+                reason = 'off-screen' if off_screen else 'no movement'
+                print(f'[IRIS] DLP off ({reason})')
 
     # ── Universal cursor ──────────────────────────────────────────────────────
 
