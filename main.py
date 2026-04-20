@@ -97,8 +97,7 @@ class IrisOS:
         # Both-caps state
         self._both_held  = False
         self._both_since = 0.0
-        self._boot_recal_done = False   # force recal if both held in first 3s
-        self._boot_t          = 0.0
+
 
         # Single cap hold tracking (per-app duration)
         self._alpha_held  = False
@@ -200,16 +199,6 @@ class IrisOS:
             # ── DLP power management ──────────────────────────────────────────
             self._update_dlp(imu_state, dt)
 
-            # ── Boot recalibration window (first 3s, both caps) ─────────────
-            if not self._boot_recal_done:
-                self._boot_t += dt
-                if self.input._alpha_held and self.input._beta_held:
-                    print('[IRIS] Boot recalibration triggered')
-                    self.imu.calibrate(500)
-                    self._boot_recal_done = True
-                elif self._boot_t >= 3.0:
-                    self._boot_recal_done = True
-
             # ── Both-caps hold logic (pin + home, unkillable) ─────────────────
             import time as _t
             both_now = self.input._alpha_held and self.input._beta_held
@@ -218,7 +207,12 @@ class IrisOS:
                 self._both_since = _t.time()
             elif not both_now and self._both_held:
                 held = _t.time() - self._both_since
-                if held >= 1.5:
+                if held >= 10.0:
+                    # Very long hold — recalibrate IMU
+                    print('[IRIS] Recalibrating IMU...')
+                    self.imu.calibrate(500)
+                    print('[IRIS] Recalibration done')
+                elif held >= 1.5:
                     # Long hold — pin + home
                     self._do_pin_and_home(imu_state)
                 elif held >= 0.3 and self.state == STATE_APP:
