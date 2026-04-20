@@ -300,12 +300,16 @@ class IrisOS:
                     rect   = scaled.get_rect(center=screen_center)
                     screen.blit(scaled, rect)
             elif abs(roll) > 1.0:
-                rotated = pygame.transform.rotate(canvas, -roll)
+                # Pad canvas before rotation to prevent framebuffer edge blink
+                pad    = 60
+                padded = pygame.Surface((WIDTH + pad*2, HEIGHT + pad*2))
+                padded.fill(BLACK)
+                padded.blit(canvas, (pad, pad))
+                rotated = pygame.transform.rotate(padded, -roll)
                 rect    = rotated.get_rect(center=screen_center)
                 screen.blit(rotated, rect)
             else:
-                rect = canvas.get_rect(center=screen_center)
-                screen.blit(canvas, rect)
+                screen.blit(canvas, (0, 0))
 
             pygame.display.flip()
 
