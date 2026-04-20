@@ -69,7 +69,6 @@ class RealIMU:
         self._bias      = {ax: acc[ax] / samples for ax in self._AXES}
         self._state     = OrientationState()
         self._last_time = time.time()
-        # Capture resting pitch and roll offsets from multiple accel samples
         pacc, racc = 0.0, 0.0
         for _ in range(100):
             accel = self.sensor.get_accel_data()
@@ -79,7 +78,26 @@ class RealIMU:
         self._pitch_offset = pacc / 100
         self._roll_offset  = racc / 100
         print(f'[IMU] Bias: {self._bias}  pitch_offset={self._pitch_offset:.1f}  roll_offset={self._roll_offset:.1f}')
+        # Save bias to file
+        from core.config import save_bias
+        save_bias({'bias': self._bias,
+                   'pitch_offset': self._pitch_offset,
+                   'roll_offset':  self._roll_offset})
+        print('[IMU] Bias saved')
         return self._bias
+
+    def load_bias(self) -> bool:
+        from core.config import load_bias
+        data = load_bias()
+        if data:
+            self._bias         = data.get('bias', {'x':0.0,'y':0.0,'z':0.0})
+            self._pitch_offset = data.get('pitch_offset', 0.0)
+            self._roll_offset  = data.get('roll_offset',  0.0)
+            self._state        = OrientationState()
+            self._last_time    = time.time()
+            print(f'[IMU] Bias loaded from file')
+            return True
+        return False
 
     def reset(self):
         self._state     = OrientationState()
@@ -177,6 +195,11 @@ class Mpu6050Handler:
 
     def calibrate(self, samples=200):
         return self._backend.calibrate(samples=samples)
+
+    def load_bias(self) -> bool:
+        if hasattr(self._backend, 'load_bias'):
+            return self._backend.load_bias()
+        return False
 
     def reset(self):
         self._backend.reset()

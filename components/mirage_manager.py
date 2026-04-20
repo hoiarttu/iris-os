@@ -32,6 +32,7 @@ from apps.placeholder_app import PlaceholderApp
 from apps.system_app      import SystemApp
 from apps.testgame_app    import TestgameApp
 from apps.etch_app        import EtchApp
+from apps.settings_app    import SettingsApp
 
 # ── Tuning ────────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ def default_apps():
         TestgameApp(),
         SystemApp(),
         EtchApp(),
-        PlaceholderApp('Settings'),
+        SettingsApp(),
         PlaceholderApp('Comms'),
         PlaceholderApp('Vision'),
     ]

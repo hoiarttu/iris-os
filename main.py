@@ -137,6 +137,11 @@ class IrisOS:
             self._gpio = None
             print(f'[IRIS] GPIO unavailable ({e})')
 
+        # Load config
+        from core.config import load_config
+        self._config = load_config()
+        self._apply_accent(self._config['accent'])
+
         _f = pygame.font.Font('assets/fonts/Rajdhani-Regular.ttf', 11)
         self._home_hint_surf = _f.render('both caps = home', True, (60, 60, 60))
 
@@ -154,7 +159,9 @@ class IrisOS:
             print(f'[IRIS] Hand tracker failed to start: {e}')
             self._tracker_proc = None
 
-        if IMU_CAL_SAMPLES > 0:
+        # Load saved bias — only recalibrate if no saved bias exists
+        if not self.imu.load_bias():
+            print('[IRIS] No saved bias — running first-time calibration')
             self.imu.calibrate(IMU_CAL_SAMPLES)
         print('[IRIS] Boot complete.')
 
@@ -334,6 +341,17 @@ class IrisOS:
 
         self._shutdown()
 
+    # ── Accent color ─────────────────────────────────────────────────────────────
+
+    def _apply_accent(self, rgb: list):
+        import core.display as _cd
+        import components.draw as _dr
+        r, g, b = rgb
+        _cd.ACCENT              = (r, g, b)
+        _dr.HEX_BORDER_FOCUSED  = (r, g, b)
+        self.input.set_led(r, g, b, 0)
+        print(f'[IRIS] Accent set to {rgb}')
+
     # ── DLP power management ─────────────────────────────────────────────────────
 
     def _update_dlp(self, imu_state, dt):
@@ -408,6 +426,9 @@ class IrisOS:
             self._active_app.suspend()
         self._active_app    = app
         self._active_mirage = mirage
+        # Inject os_ref for apps that need kernel access
+        if hasattr(self._active_app, '_os_ref'):
+            self._active_app._os_ref = self
         self._active_app.launch()
         self.state = STATE_APP
         print(f'[IRIS] Launched: {app.name}  pin={app.pin_mode}')
