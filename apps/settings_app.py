@@ -265,7 +265,7 @@ class SettingsApp(BaseApp):
                 self._status_t   = time.time()
             else:
                 self._set_status('Calibrating...')
-                self._os_ref.imu.calibrate(150)
+                self._os_ref.imu.calibrate(500)
                 self._calibrating = False
                 self._set_status('Calibration done! Restart to apply.')
 
