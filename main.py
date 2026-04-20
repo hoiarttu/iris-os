@@ -121,6 +121,22 @@ class IrisOS:
         except Exception:
             self._dlp_bus = None
 
+        # DLP power via GPIO 27
+        self._dlp_on        = True
+        self._dlp_off_timer = 0.0
+        self._DLP_OFF_DELAY = 3.0   # seconds off-screen before DLP powers down
+        self._DLP_THRESHOLD = 30.0  # degrees off-mirage before considering blank
+        try:
+            import RPi.GPIO as GPIO
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setup(27, GPIO.OUT)
+            GPIO.output(27, GPIO.HIGH)
+            self._gpio = GPIO
+            print('[IRIS] DLP GPIO 27 ready')
+        except Exception as e:
+            self._gpio = None
+            print(f'[IRIS] GPIO unavailable ({e})')
+
         _f = pygame.font.Font('assets/fonts/Rajdhani-Regular.ttf', 11)
         self._home_hint_surf = _f.render('both caps = home', True, (60, 60, 60))
 
@@ -171,6 +187,9 @@ class IrisOS:
             # gesture_list = self.gestures.update(self.hand)
             # for gesture in gesture_list:
             #     self._handle_gesture(gesture)
+
+            # ── DLP power management ──────────────────────────────────────────
+            self._update_dlp(imu_state, dt)
 
             # ── Both-caps hold logic (pin + home, unkillable) ─────────────────
             import time as _t
@@ -314,6 +333,37 @@ class IrisOS:
             pygame.display.flip()
 
         self._shutdown()
+
+    # ── DLP power management ─────────────────────────────────────────────────────
+
+    def _update_dlp(self, imu_state, dt):
+        if not self._gpio:
+            return
+
+        # Any cap input resets off-timer and keeps DLP on
+        cap_active = self.input._alpha_held or self.input._beta_held
+
+        # Check if mirage is in view
+        in_view = False
+        if self.scene.mirages:
+            from core.geometry import angle_diff
+            diff = angle_diff(imu_state.yaw, self.scene.mirages[0].azimuth)
+            in_view = diff < self._DLP_THRESHOLD
+
+        if in_view or cap_active or self.state == STATE_APP:
+            # In view or input — reset timer, ensure DLP on
+            self._dlp_off_timer = 0.0
+            if not self._dlp_on:
+                self._gpio.output(27, self._gpio.HIGH)
+                self._dlp_on = True
+                print('[IRIS] DLP on')
+        else:
+            # Off-screen — count down
+            self._dlp_off_timer += dt
+            if self._dlp_on and self._dlp_off_timer >= self._DLP_OFF_DELAY:
+                self._gpio.output(27, self._gpio.LOW)
+                self._dlp_on = False
+                print('[IRIS] DLP off')
 
     # ── Universal cursor ──────────────────────────────────────────────────────
 
@@ -489,6 +539,10 @@ class IrisOS:
         if hasattr(self, '_tracker_proc') and self._tracker_proc:
             self._tracker_proc.terminate()
             print('[IRIS] Hand tracker stopped')
+        if hasattr(self, '_gpio') and self._gpio:
+            self._gpio.output(27, self._gpio.LOW)
+            self._gpio.cleanup()
+            print('[IRIS] GPIO cleaned up')
         pygame.quit()
         print('[IRIS] Shutdown.')
         sys.exit(0)
