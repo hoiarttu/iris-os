@@ -36,6 +36,9 @@ class BaseApp:
     # Cursor
     show_cursor   = True
 
+    # DLP
+    dlp_auto_off  = True    # set False to prevent auto sleep (media apps etc.)
+
     # Input
     cap_hold_secs = 0.0        # min hold before alpha/beta register
 
