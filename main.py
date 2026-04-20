@@ -159,10 +159,18 @@ class IrisOS:
             print(f'[IRIS] Hand tracker failed to start: {e}')
             self._tracker_proc = None
 
-        # Load saved bias — only recalibrate if no saved bias exists
-        if not self.imu.load_bias():
+        # Check if both caps held at boot — force recalibrate
+        import time as _bt
+        print('[IRIS] Hold both caps now to force recalibration...')
+        _bt.sleep(2.0)   # 2s window to press both caps
+        force_recal = self.input._alpha_held and self.input._beta_held
+
+        if force_recal:
+            print('[IRIS] Force recalibration requested')
+            self.imu.calibrate(500)
+        elif not self.imu.load_bias():
             print('[IRIS] No saved bias — running first-time calibration')
-            self.imu.calibrate(IMU_CAL_SAMPLES)
+            self.imu.calibrate(500)
         print('[IRIS] Boot complete.')
 
     def run(self):
