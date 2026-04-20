@@ -381,8 +381,9 @@ class IrisOS:
             diff    = angle_diff(imu_state.yaw, self.scene.mirages[0].azimuth)
             in_view = diff < self._DLP_THRESHOLD
 
-        # Wake conditions
-        should_wake = cap_active or self.state == STATE_APP or (in_view and moving)
+        # Wake conditions — hand active = someone present
+        hand_active = self.hand and self.hand.active
+        should_wake = cap_active or hand_active or self.state == STATE_APP or (in_view and moving)
 
         if should_wake:
             self._dlp_off_timer   = 0.0
