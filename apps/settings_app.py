@@ -83,6 +83,7 @@ class SettingsApp(BaseApp):
         self._status_msg  = ''
         self._status_t    = 0.0
         self._calibrating = False
+        self._calibrate_t = 0.0
 
         # Build menu
         self._build_menu()
@@ -198,8 +199,9 @@ class SettingsApp(BaseApp):
 
         elif action == 'recalibrate':
             if self._os_ref:
-                self._set_status('Calibrating — hold still...')
+                self._set_status('Hold still — starting in 3s...')
                 self._calibrating = True
+                self._calibrate_t = time.time()
 
         elif action == 'update':
             self._set_status('Updating...')
@@ -254,11 +256,18 @@ class SettingsApp(BaseApp):
         pass
 
     def update(self, dt):
-        # Handle calibration async
+        # Handle calibration with countdown
         if self._calibrating and self._os_ref:
-            self._os_ref.imu.calibrate(150)
-            self._calibrating = False
-            self._set_status('Calibration done!')
+            elapsed = time.time() - self._calibrate_t
+            remaining = 3.0 - elapsed
+            if remaining > 0:
+                self._status_msg = f'Hold still — {remaining:.0f}s...'
+                self._status_t   = time.time()
+            else:
+                self._set_status('Calibrating...')
+                self._os_ref.imu.calibrate(150)
+                self._calibrating = False
+                self._set_status('Calibration done! Restart to apply.')
 
         # Rebuild about string periodically
         if int(time.time()) % 10 == 0:
@@ -291,15 +300,18 @@ class SettingsApp(BaseApp):
         else:
             self._hover_idx = max(0, self._hover_idx - 1)
 
+    def _handle_alpha_held(self):
+        pass   # prevent clear canvas from base
+
     def on_event(self, event):
         if event.type == pygame.KEYDOWN:
+            n = len(self._submenu_items) if self._submenu else len(self._items)
             if event.key == pygame.K_UP:
                 if self._submenu:
                     self._submenu_hover = max(0, self._submenu_hover - 1)
                 else:
                     self._hover_idx = max(0, self._hover_idx - 1)
             elif event.key == pygame.K_DOWN:
-                n = len(self._submenu_items) if self._submenu else len(self._items)
                 if self._submenu:
                     self._submenu_hover = min(n-1, self._submenu_hover + 1)
                 else:
@@ -309,6 +321,10 @@ class SettingsApp(BaseApp):
             elif event.key == pygame.K_ESCAPE:
                 if self._submenu:
                     self._submenu = None
+            elif event.key == pygame.K_z:
+                self._handle_alpha()
+            elif event.key == pygame.K_x:
+                self._handle_beta()
 
     # ── Rendering ─────────────────────────────────────────────────────────────
 
