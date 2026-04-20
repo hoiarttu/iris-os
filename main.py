@@ -97,6 +97,8 @@ class IrisOS:
         # Both-caps state
         self._both_held  = False
         self._both_since = 0.0
+        self._boot_recal_done = False   # force recal if both held in first 3s
+        self._boot_t          = 0.0
 
         # Single cap hold tracking (per-app duration)
         self._alpha_held  = False
@@ -159,16 +161,8 @@ class IrisOS:
             print(f'[IRIS] Hand tracker failed to start: {e}')
             self._tracker_proc = None
 
-        # Check if both caps held at boot — force recalibrate
-        import time as _bt
-        print('[IRIS] Hold both caps now to force recalibration...')
-        _bt.sleep(2.0)   # 2s window to press both caps
-        force_recal = self.input._alpha_held and self.input._beta_held
-
-        if force_recal:
-            print('[IRIS] Force recalibration requested')
-            self.imu.calibrate(500)
-        elif not self.imu.load_bias():
+        # Load saved bias — only recalibrate if no saved bias exists
+        if not self.imu.load_bias():
             print('[IRIS] No saved bias — running first-time calibration')
             self.imu.calibrate(500)
         print('[IRIS] Boot complete.')
@@ -205,6 +199,16 @@ class IrisOS:
 
             # ── DLP power management ──────────────────────────────────────────
             self._update_dlp(imu_state, dt)
+
+            # ── Boot recalibration window (first 3s, both caps) ─────────────
+            if not self._boot_recal_done:
+                self._boot_t += dt
+                if self.input._alpha_held and self.input._beta_held:
+                    print('[IRIS] Boot recalibration triggered')
+                    self.imu.calibrate(500)
+                    self._boot_recal_done = True
+                elif self._boot_t >= 3.0:
+                    self._boot_recal_done = True
 
             # ── Both-caps hold logic (pin + home, unkillable) ─────────────────
             import time as _t
@@ -542,9 +546,7 @@ class IrisOS:
             self.scene.save()
 
     def _draw_home_hint(self):
-        canvas.blit(self._home_hint_surf,
-                    (WIDTH // 2 - self._home_hint_surf.get_width() // 2,
-                     HEIGHT - 20))
+        pass   # removed — minimal UI
 
     # ── Shutdown ──────────────────────────────────────────────────────────────
 
