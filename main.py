@@ -212,24 +212,28 @@ class IrisOS:
                 self._both_since = _t.time()
             elif not both_now and self._both_held:
                 held = _t.time() - self._both_since
-                if held >= 10.0:
-                    # Very long hold — recalibrate IMU
-                    print('[IRIS] Recalibrating IMU...')
-                    self.imu.calibrate(500)
-                    print('[IRIS] Recalibration done')
-                elif held >= 1.5:
+                if held >= 1.5 and held < 10.0:
                     # Long hold — pin + home
                     self._do_pin_and_home(imu_state)
-                elif held >= 0.3 and self.state == STATE_APP:
+                elif held >= 0.3 and held < 1.5 and self.state == STATE_APP:
                     # Medium tap in app — exit app
                     self.close_app()
                 self._both_held = False
             elif both_now and self._both_held:
-                # While held, freeze display only — don't touch IMU backend
+                held = _t.time() - self._both_since
+                # While held, freeze display only
                 if self.scene.mirages:
                     imu_state.yaw   = self.scene.mirages[0].azimuth
                     imu_state.pitch = 0.0
                     imu_state.roll  = 0.0
+                # 10s hold — recalibrate while still held
+                if held >= 10.0 and not getattr(self, '_recal_done', False):
+                    print('[IRIS] Recalibrating IMU...')
+                    self.imu.calibrate(500)
+                    self._recal_done = True
+                    print('[IRIS] Recalibration done')
+                if not both_now:
+                    self._recal_done = False
 
             # ── Cap hold → app draw state ────────────────────────────────────────
             if self._active_app and hasattr(self._active_app, '_cap_draw'):
@@ -450,7 +454,7 @@ class IrisOS:
         for m in self.scene.mirages:
             m.azimuth   = imu_state.yaw
             m.elevation = 0.0
-        self.imu.reset()
+        # Don't reset IMU — causes snap. Just save new azimuth.
         self.scene.save()
         self._pin_anim = self._PIN_DUR
         print('[IRIS] Mirage pinned')
