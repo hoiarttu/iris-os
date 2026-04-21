@@ -268,8 +268,6 @@ class IrisOS:
 
             # ── Deep Sleep Render Bypass ──────────────────────────────────────
             if not self._dlp_on:
-                import time
-                time.sleep(0.05)  # Yield CPU, drop OS to ~10 FPS while screen is dead
                 continue  # Skip all pygame rendering and flipping
 
             if self._pinned:
