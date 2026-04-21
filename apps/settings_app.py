@@ -214,10 +214,14 @@ class SettingsApp(BaseApp):
                 self._set_status(f'Update failed: {e}')
 
         elif action == 'reboot':
-            subprocess.Popen(['sudo', 'reboot'])
+            self._set_status('Rebooting...')
+            if self._os_ref:
+                self._os_ref._power_action('reboot')
 
         elif action == 'shutdown':
-            subprocess.Popen(['sudo', 'shutdown', '-h', 'now'])
+            self._set_status('Shutting down...')
+            if self._os_ref:
+                self._os_ref._power_action('shutdown')
 
         elif action == 'about':
             self._set_status(self._get_about())
@@ -263,11 +267,16 @@ class SettingsApp(BaseApp):
             if remaining > 0:
                 self._status_msg = f'Hold still — {remaining:.0f}s...'
                 self._status_t   = time.time()
-            else:
-                self._set_status('Calibrating...')
-                self._os_ref.imu.calibrate(500)
-                self._calibrating = False
-                self._set_status('Calibration done! Restart to apply.')
+            elif not getattr(self, '_cal_thread_started', False):
+                self._cal_thread_started = True
+                self._set_status('Calibrating — hold still...')
+                import threading as _th
+                def _do_cal():
+                    self._os_ref.imu.calibrate(500)
+                    self._calibrating        = False
+                    self._cal_thread_started = False
+                    self._set_status('Done! Calibration saved.')
+                _th.Thread(target=_do_cal, daemon=True).start()
 
         # Rebuild about string periodically
         if int(time.time()) % 10 == 0:
@@ -275,12 +284,28 @@ class SettingsApp(BaseApp):
                 self._items[-1]['sub'] = self._get_about()
 
     def on_imu(self, imu_state, hand=None):
+        self._imu_state = imu_state
         if hand and hand.active:
             self._hand_x = hand.x
             self._hand_y = hand.y
-            # Map hand y to item index
+            from core.geometry import angle_diff
+            import math
+            mirage_az = 0.0
+            if self._os_ref and self._os_ref._active_mirage:
+                mirage_az = self._os_ref._active_mirage.azimuth
+            from core.display import WIDTH, HEIGHT
+            PX_YAW, PX_PITCH = 28, 24
+            yaw_diff = angle_diff(imu_state.yaw, mirage_az)
+            yaw_sign = 1 if ((imu_state.yaw - mirage_az + 360) % 360) < 180 else -1
+            dx = -yaw_sign * yaw_diff * PX_YAW
+            dy = imu_state.pitch * PX_PITCH
+            roll_rad = math.radians(imu_state.roll)
+            cr, sr = math.cos(roll_rad), math.sin(roll_rad)
+            ox = int(cr * dx - sr * dy)
+            oy = int(sr * dx + cr * dy)
+            canvas_y = hand.y * HEIGHT - oy
             n = len(self._submenu_items) if self._submenu else len(self._items)
-            idx = int(self._hand_y * n)
+            idx = int((canvas_y - ITEM_Y0) / ITEM_H)
             idx = max(0, min(n - 1, idx))
             if self._submenu:
                 self._submenu_hover = idx

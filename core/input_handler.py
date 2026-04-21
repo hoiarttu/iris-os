@@ -22,6 +22,11 @@ EVT_HOME    = 'home'
 ESP32_BUS     = 11
 ESP32_ADDRESS = 0x42
 HOLD_SECS     = 0.5
+MIN_PRESS_SECS = 0.08   # must be held this long before release counts
+MIN_PRESS_SECS = 0.08   # cap must be held at least this long before release counts
+MIN_PRESS_SECS = 0.08   # cap must be held at least this long before release counts
+MIN_PRESS_SECS = 0.08   # must be held this long before release counts
+MIN_PRESS_SECS = 0.08   # cap must be held at least this long before release counts
 
 
 class InputHandler:
@@ -77,13 +82,15 @@ class InputHandler:
             both = alpha and beta
 
             # Both caps handled entirely by main.py hold logic
-            # Alpha alone released = back
+            # Alpha alone released = back (only if held >= MIN_PRESS_SECS)
             if not alpha and self._alpha_held and not both:
-                events.append(EVT_BACK)
+                if now - self._alpha_since >= MIN_PRESS_SECS:
+                    events.append(EVT_BACK)
 
-            # Beta alone released = confirm
+            # Beta alone released = confirm (only if held >= MIN_PRESS_SECS)
             if not beta and self._beta_held and not both:
-                events.append(EVT_CONFIRM)
+                if now - self._beta_since >= MIN_PRESS_SECS:
+                    events.append(EVT_CONFIRM)
 
             self._alpha_held = alpha
             self._beta_held  = beta

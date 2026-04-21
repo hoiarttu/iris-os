@@ -226,12 +226,15 @@ class IrisOS:
                     imu_state.yaw   = self.scene.mirages[0].azimuth
                     imu_state.pitch = 0.0
                     imu_state.roll  = 0.0
-                # 10s hold — recalibrate while still held
+                # 10s hold — recalibrate in background thread
                 if held >= 10.0 and not getattr(self, '_recal_done', False):
-                    print('[IRIS] Recalibrating IMU...')
-                    self.imu.calibrate(500)
                     self._recal_done = True
-                    print('[IRIS] Recalibration done')
+                    import threading as _th
+                    def _do_recal():
+                        print('[IRIS] Recalibrating IMU (background)...')
+                        self.imu.calibrate(500)
+                        print('[IRIS] Recalibration done')
+                    _th.Thread(target=_do_recal, daemon=True).start()
                 if not both_now:
                     self._recal_done = False
 
@@ -584,6 +587,32 @@ class IrisOS:
 
     def _handle_sigterm(self, signum, frame):
         self._shutdown()
+
+    def _power_action(self, action: str):
+        """Graceful reboot/shutdown: LOGO -> DLP off -> pygame quit -> os cmd."""
+        import os as _os
+        self.scene.save()
+        try:
+            logo = pygame.image.load('assets/LOGO.png').convert_alpha()
+            logo = pygame.transform.smoothscale(logo, (200, 200))
+            screen.fill(BLACK)
+            r = logo.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+            screen.blit(logo, r)
+            pygame.display.flip()
+            pygame.time.wait(1800)
+        except Exception:
+            pass
+        if hasattr(self, '_gpio') and self._gpio:
+            self._gpio.output(27, self._gpio.LOW)
+            self._gpio.cleanup()
+        if hasattr(self, '_tracker_proc') and self._tracker_proc:
+            self._tracker_proc.terminate()
+        pygame.quit()
+        if action == 'reboot':
+            _os.system('sudo reboot')
+        else:
+            _os.system('sudo shutdown -h now')
+        sys.exit(0)
 
     def _shutdown(self):
         self.scene.save()
