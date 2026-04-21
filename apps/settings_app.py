@@ -19,7 +19,7 @@ _MONO      = 'assets/fonts/Rajdhani-Regular.ttf'
 
 # ── Design constants ──────────────────────────────────────────────────────────
 
-BG          = (  8,   8,  18)
+BG          = (  0,   0,   0)
 COL_IDLE    = ( 80,  40, 180)
 COL_SEL     = ( 80, 220, 255)
 COL_DIM     = ( 60,  60,  70)
@@ -82,6 +82,7 @@ class SettingsApp(BaseApp):
         # Async op state
         self._status_msg  = ''
         self._status_t    = 0.0
+        self._status_action = None
         self._calibrating = False
         self._calibrate_t = 0.0
 
@@ -264,18 +265,25 @@ class SettingsApp(BaseApp):
         if self._calibrating and self._os_ref:
             elapsed = time.time() - self._calibrate_t
             remaining = 3.0 - elapsed
+            self._status_action = 'recalibrate'
             if remaining > 0:
                 self._status_msg = f'Hold still — {remaining:.0f}s...'
                 self._status_t   = time.time()
             elif not getattr(self, '_cal_thread_started', False):
                 self._cal_thread_started = True
+                self._os_ref._cal_thread_started = True
                 self._set_status('Calibrating — hold still...')
                 import threading as _th
                 def _do_cal():
-                    self._os_ref.imu.calibrate(500)
-                    self._calibrating        = False
-                    self._cal_thread_started = False
-                    self._set_status('Done! Calibration saved.')
+                    try:
+                        self._os_ref.imu.calibrate(500)
+                    except Exception as e:
+                        print(f'[Settings] Calib error: {e}')
+                    finally:
+                        self._calibrating        = False
+                        self._cal_thread_started = False
+                        self._os_ref._cal_thread_started = False
+                        self._set_status('Done! Calibration saved.')
                 _th.Thread(target=_do_cal, daemon=True).start()
 
         # Rebuild about string periodically
@@ -314,9 +322,11 @@ class SettingsApp(BaseApp):
 
     def _handle_beta(self):
         if self._submenu:
+            self._status_action = self._submenu_items[self._submenu_hover]
             self._do_submenu_action(self._submenu_hover)
         else:
             action = self._items[self._hover_idx]['action']
+            self._status_action = action
             self._do_action(action)
 
     def _handle_alpha(self):
@@ -378,6 +388,13 @@ class SettingsApp(BaseApp):
         sub = self._f_sub.render(item['sub'], True, COL_SUBTEXT)
         surface.blit(sub, (x + 16, y + 30))
 
+        # Right-aligned status
+        import time
+        is_status_target = (item.get('action') == getattr(self, '_status_action', None)) or (item.get('label') == getattr(self, '_status_action', None))
+        if is_status_target and self._status_msg and time.time() - self._status_t < 4.0:
+            sm = self._f_small.render(self._status_msg, True, COL_SEL)
+            surface.blit(sm, (x + w - sm.get_width() - 16, y + h // 2 - sm.get_height() // 2))
+
     def draw_fullscreen(self, surface):
         surface.fill(BG)
         W, H = surface.get_size()
@@ -412,10 +429,6 @@ class SettingsApp(BaseApp):
                     break
                 self._draw_item(surface, i, item, sel, y)
 
-        # Status message
-        if self._status_msg and time.time() - self._status_t < 4.0:
-            sm = self._f_small.render(self._status_msg, True, COL_SEL)
-            surface.blit(sm, (ITEM_X, H - 24))
 
         # Hint
         hint = self._f_sub.render(

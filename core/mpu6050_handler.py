@@ -111,12 +111,16 @@ class RealIMU:
         gyro  = self.sensor.get_gyro_data()
         accel = self.sensor.get_accel_data()
 
-        # Yaw — pure gyro integration
-        self._state.yaw = (self._state.yaw +
-            (gyro[self.yaw_axis] - self._bias[self.yaw_axis]) * dt) % 360.0
+        # Safe Gyro math (ignores violent spikes > 1000 deg/s)
+        gy = gyro[self.yaw_axis] - self._bias[self.yaw_axis]
+        gp = gyro[self.pitch_axis] - self._bias[self.pitch_axis]
+        
+        if abs(gy) > 1000.0 or abs(gp) > 1000.0:
+            self._state.timestamp = now
+            return self._state
 
-        # Pitch — pure gyro, soft drift correction when still
-        self._state.pitch += (gyro[self.pitch_axis] - self._bias[self.pitch_axis]) * dt
+        self._state.yaw = (self._state.yaw + gy * dt) % 360.0
+        self._state.pitch += gp * dt
         gyro_mag = abs(gyro[self.pitch_axis] - self._bias[self.pitch_axis])
         if gyro_mag < 1.0:
             self._state.pitch *= 0.999
