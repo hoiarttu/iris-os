@@ -15,7 +15,9 @@ from collections import deque
 
 SOCKET_PATH      = '/tmp/iris_hand.sock'
 CAMERA_INDEX     = 0
-TARGET_FPS       = 20     
+ACTIVE_FPS       = 20.0
+IDLE_FPS         = 1.0
+IDLE_TIMEOUT     = 2.0     
 
 # --- HSV SKIN COLOR CALIBRATION ---
 LOWER_SKIN = np.array([0, 20, 70], dtype=np.uint8)
@@ -95,7 +97,7 @@ def main():
 
     srv    = make_socket()
     client = None
-    delay  = 1.0 / TARGET_FPS
+    idle_timer = 0.0
 
     # Set up the rolling buffers
     hist_x = deque(maxlen=BUFFER_SIZE)
@@ -183,7 +185,16 @@ def main():
                     client = None
 
             elapsed = time.time() - t0
-            wait    = delay - elapsed
+            
+            # --- ADAPTIVE FRAMERATE ---
+            if found_hand:
+                idle_timer = 0.0
+                target_fps = ACTIVE_FPS
+            else:
+                idle_timer += elapsed
+                target_fps = IDLE_FPS if idle_timer >= IDLE_TIMEOUT else ACTIVE_FPS
+
+            wait = (1.0 / target_fps) - elapsed
             if wait > 0: time.sleep(wait)
                 
     except KeyboardInterrupt:
