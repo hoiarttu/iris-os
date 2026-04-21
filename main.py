@@ -221,7 +221,7 @@ class IrisOS:
             elif not both_now and self._both_held:
                 held = _t.time() - self._both_since
                 self._recal_done = False
-                if held >= 1.5 and held < 15.0:
+                if held >= 1.5 and held < 5.0:
                     # Long hold — pin + home
                     self._do_pin_and_home(imu_state)
                 elif held >= 0.3 and held < 1.5 and self.state == STATE_APP:
@@ -236,7 +236,7 @@ class IrisOS:
                     imu_state.pitch = 0.0
                     imu_state.roll  = 0.0
                 # 15s hold — recalibrate in background thread
-                if held >= 15.0 and not getattr(self, '_recal_done', False):
+                if held >= 5.0 and not getattr(self, '_recal_done', False):
                     self._recal_done = True
                     import threading as _th
                     def _do_recal():
@@ -245,7 +245,7 @@ class IrisOS:
                         print('[IRIS] Recalibration done')
                     _th.Thread(target=_do_recal, daemon=True).start()
                 # 60s pocket dial shutdown
-                if held >= 60.0:
+                if held >= 20.0:
                     print('[IRIS] 60s hold detected (pocket dial). Shutting down.')
                     self._power_action('shutdown')
 
@@ -265,6 +265,12 @@ class IrisOS:
                         0x1b, 0x0b, [0x00, 0x00, 0x00, 0x00])
                 except Exception:
                     pass
+
+            # ── Deep Sleep Render Bypass ──────────────────────────────────────
+            if not self._dlp_on:
+                import time
+                time.sleep(0.05)  # Yield CPU, drop OS to ~10 FPS while screen is dead
+                continue  # Skip all pygame rendering and flipping
 
             if self._pinned:
                 imu_state.yaw   = 0.0
@@ -384,42 +390,55 @@ class IrisOS:
     # ── DLP power management ─────────────────────────────────────────────────────
 
     def _update_dlp(self, imu_state, dt):
-        if not self._gpio: return
-        from core.geometry import angle_diff
-        
-        dyaw   = angle_diff(imu_state.yaw,   self._last_yaw)
-        dpitch = abs(imu_state.pitch - self._last_pitch)
-        moving = (dyaw + dpitch) / max(dt, 0.001) > self._DLP_MOVE_THRESH
-        self._last_yaw, self._last_pitch = imu_state.yaw, imu_state.pitch
-
-        in_view = False
-        if self.scene.mirages:
-            in_view = angle_diff(imu_state.yaw, self.scene.mirages[0].azimuth) < self._DLP_THRESHOLD
+        if not getattr(self, '_gpio', None): return
+        try:
+            from core.geometry import angle_diff
             
-        if self.state == STATE_APP and self._active_app and getattr(self._active_app, 'pin_mode', 'pinned') != 'pinned':
-            in_view = True
+            in_view = False
+            if getattr(self.scene, 'mirages', None):
+                # Check ALL pinned mirages, not just index 0
+                for m in self.scene.mirages:
+                    if abs(angle_diff(imu_state.yaw, m.azimuth)) < self._DLP_THRESHOLD and abs(imu_state.pitch - m.elevation) < self._DLP_THRESHOLD:
+                        in_view = True
+                        break
+                
+            if self.state == STATE_APP and self._active_app and getattr(self._active_app, 'pin_mode', 'pinned') != 'pinned':
+                in_view = True
 
-        cap_active  = self.input._alpha_held or self.input._beta_held
-        hand_active = self.hand and self.hand.active
+            raw_cap  = self.input._alpha_held or self.input._beta_held
+            if raw_cap:
+                self._cap_wake_t = getattr(self, '_cap_wake_t', 0.0) + dt
+            else:
+                self._cap_wake_t = 0.0
+            cap_active = raw_cap and self._cap_wake_t < 2.0
 
-        if moving or cap_active or hand_active:
-            self._dlp_still_timer = 0.0
-        else:
-            self._dlp_still_timer += dt
+            # Hand stuck failsafe (if hand doesn't move 1 pixel for 2s, ignore it)
+            hand_active = False
+            if self.hand and self.hand.active:
+                hx, hy = getattr(self.hand, 'x', -1), getattr(self.hand, 'y', -1)
+                if hx == getattr(self, '_last_hx', -2) and hy == getattr(self, '_last_hy', -2):
+                    self._hand_stuck_t = getattr(self, '_hand_stuck_t', 0.0) + dt
+                else:
+                    self._hand_stuck_t = 0.0
+                self._last_hx, self._last_hy = hx, hy
+                
+                if self._hand_stuck_t < 2.0:
+                    hand_active = True
 
-        app_allows = (self._active_app is None or getattr(self._active_app, 'dlp_auto_off', True))
-        
-        # SLEEP RULE: MUST be outside bounds (!in_view) AND idle AND app allows
-        should_sleep = (not in_view) and (self._dlp_still_timer >= self._DLP_STILL_DELAY) and app_allows
-
-        if should_sleep and self._dlp_on:
-            self._gpio.output(27, self._gpio.LOW)
-            self._dlp_on = False
-            print('[IRIS] DLP off (out of bounds & idle)')
-        elif not should_sleep and not self._dlp_on:
-            self._gpio.output(27, self._gpio.HIGH)
-            self._dlp_on = True
-            print('[IRIS] DLP on')
+            app_allows = (self._active_app is None or getattr(self._active_app, 'dlp_auto_off', True))
+            
+            if in_view or cap_active or hand_active:
+                self._dlp_off_timer = 0.0
+                if not self._dlp_on:
+                    self._gpio.output(27, self._gpio.HIGH)
+                    self._dlp_on = True
+            else:
+                self._dlp_off_timer += dt
+                if self._dlp_off_timer >= 1.5 and self._dlp_on and app_allows:
+                    self._gpio.output(27, self._gpio.LOW)
+                    self._dlp_on = False
+        except Exception as e:
+            print(f"[IRIS] DLP Logic Error: {e}")
 
     def _draw_universal_cursor(self):
         from components.mirage_manager import _get_cursor
