@@ -421,12 +421,10 @@ class IrisOS:
 
             app_allows = (self._active_app is None or getattr(self._active_app, 'dlp_auto_off', True))
             
-            # Orientation protection — kill DLP if dangerous orientation
-            # Looking down (pocket): pitch < -75
-            # Upside down (dropped/bag): roll > 120 either direction
-            # Ceiling projection (lying on back looking up) is intentional — allowed
-            bad_orientation = (imu_state.pitch < -75.0 or
-                               abs(imu_state.roll) > 120.0)
+            # Orientation protection — kill DLP if looking down (pocket/bag)
+            # Roll is clamped to ±75 by IMU so can't detect upside-down via roll
+            # Ceiling projection (pitch > 75 looking up) is legitimate — allowed
+            bad_orientation = imu_state.pitch < -75.0
 
             if (in_view or cap_active or hand_active) and not bad_orientation:
                 self._dlp_off_timer = 0.0
