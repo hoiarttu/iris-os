@@ -8,7 +8,12 @@ os.environ['SDL_FBDEV_MULTIBUFFER'] = '1'
 pygame.init()
 pygame.font.init()
 
-screen = pygame.display.set_mode((0, 0), pygame.NOFRAME)
+import os as _os
+_DEV_MODE = _os.environ.get('IRIS_DEV', '0') == '1'
+if _DEV_MODE:
+    screen = pygame.display.set_mode((480, 854))
+else:
+    screen = pygame.display.set_mode((0, 0), pygame.NOFRAME)
 WIDTH  = screen.get_width()
 HEIGHT = screen.get_height()
 CENTER = (WIDTH // 2, HEIGHT // 2)
