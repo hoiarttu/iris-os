@@ -310,7 +310,7 @@ class SettingsApp(BaseApp):
             yaw_diff = angle_diff(imu_state.yaw, mirage_az)
             yaw_sign = 1 if ((imu_state.yaw - mirage_az + 360) % 360) < 180 else -1
             dx = -yaw_sign * yaw_diff * PX_YAW
-            dy = -imu_state.pitch * PX_PITCH
+            dy = imu_state.pitch * PX_PITCH
             roll_rad = math.radians(imu_state.roll)
             cr, sr = math.cos(roll_rad), math.sin(roll_rad)
             ox = int(cr * dx - sr * dy)
@@ -340,7 +340,7 @@ class SettingsApp(BaseApp):
             yaw_diff = angle_diff(imu_state.yaw, mirage_az)
             yaw_sign = 1 if ((imu_state.yaw - mirage_az + 360) % 360) < 180 else -1
             dx = -yaw_sign * yaw_diff * PX_YAW
-            dy = -imu_state.pitch * PX_PITCH
+            dy = imu_state.pitch * PX_PITCH
             roll_rad = math.radians(imu_state.roll)
             cr, sr = math.cos(roll_rad), math.sin(roll_rad)
             ox = int(cr * dx - sr * dy)
