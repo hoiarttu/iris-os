@@ -111,6 +111,11 @@ class MirageManager:
 
     # ── Persistence ──────────────────────────────────────────────────────────
 
+    def reset_to_default(self):
+        """Reset all mirages to default position — call before shutdown/reboot."""
+        self.mirages = [Mirage(0.0, 0.0)]
+        print('[Scene] Mirages reset to default')
+
     def load(self):
         self.mirages = []
         try:

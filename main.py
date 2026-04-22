@@ -603,6 +603,7 @@ class IrisOS:
     def _power_action(self, action: str):
         """Graceful reboot/shutdown: LOGO -> DLP off -> pygame quit -> os cmd."""
         import os as _os
+        self.scene.reset_to_default()
         self.scene.save()
         try:
             logo = pygame.image.load('assets/LOGO.png').convert_alpha()
@@ -627,6 +628,7 @@ class IrisOS:
         sys.exit(0)
 
     def _shutdown(self):
+        self.scene.reset_to_default()
         self.scene.save()
         try:
             logo = pygame.image.load('assets/LOGO.png').convert_alpha()
