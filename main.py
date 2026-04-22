@@ -420,9 +420,32 @@ class IrisOS:
                     hand_active = True
 
             app_allows = (self._active_app is None or getattr(self._active_app, 'dlp_auto_off', True))
-            
-            if in_view or cap_active or hand_active:
+
+            # Still timer — sleep after 30s no movement in menu
+            dyaw   = abs(angle_diff(imu_state.yaw,   getattr(self, '_still_yaw',   imu_state.yaw)))
+            dpitch = abs(imu_state.pitch - getattr(self, '_still_pitch', imu_state.pitch))
+            self._still_yaw   = imu_state.yaw
+            self._still_pitch = imu_state.pitch
+            moving = (dyaw + dpitch) > 0.4
+
+            if moving or cap_active or hand_active:
+                self._dlp_still_timer = 0.0
+            else:
+                self._dlp_still_timer = getattr(self, '_dlp_still_timer', 0.0) + dt
+
+            still_sleep = (
+                self._dlp_still_timer >= 30.0 and
+                (self.state == STATE_MENU or
+                 getattr(self._active_app, 'dlp_sleep_on_still', False))
+            )
+
+            # bad_orientation and still_sleep override in_view
+            bad_orientation = imu_state.pitch < -75.0
+            force_off = bad_orientation or still_sleep
+
+            if (in_view or cap_active or hand_active) and not force_off:
                 self._dlp_off_timer = 0.0
+                self._dlp_still_timer = 0.0 if not moving else self._dlp_still_timer
                 if not self._dlp_on:
                     self._gpio.output(27, self._gpio.HIGH)
                     self._dlp_on = True
@@ -431,6 +454,8 @@ class IrisOS:
                 if self._dlp_off_timer >= 1.5 and self._dlp_on and app_allows:
                     self._gpio.output(27, self._gpio.LOW)
                     self._dlp_on = False
+                    reason = 'orientation' if bad_orientation else 'still' if still_sleep else 'out of view'
+                    print(f'[IRIS] DLP off ({reason})')
         except Exception as e:
             print(f"[IRIS] DLP Logic Error: {e}")
 
