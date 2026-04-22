@@ -293,33 +293,32 @@ class SettingsApp(BaseApp):
 
     def on_imu(self, imu_state, hand=None):
         self._imu_state = imu_state
+        items = self._submenu_items if self._submenu else self._items
+        n = len(items)
+
         if hand and hand.active:
             self._hand_x = hand.x
             self._hand_y = hand.y
-            from core.geometry import angle_diff
             import math
-            # Compute the same pinned-canvas offset the kernel applies,
-            # then un-shift the hand screen position to get canvas coords.
+            from core.geometry import angle_diff
+            from core.display import WIDTH, HEIGHT
+            # Compute pinned-canvas offset same as kernel
             mirage_az = 0.0
             if self._os_ref and self._os_ref._active_mirage:
                 mirage_az = self._os_ref._active_mirage.azimuth
-            from core.display import WIDTH, HEIGHT
             PX_YAW, PX_PITCH = 28, 24
             yaw_diff = angle_diff(imu_state.yaw, mirage_az)
             yaw_sign = 1 if ((imu_state.yaw - mirage_az + 360) % 360) < 180 else -1
             dx = -yaw_sign * yaw_diff * PX_YAW
-            dy = imu_state.pitch * PX_PITCH
+            dy = -imu_state.pitch * PX_PITCH
             roll_rad = math.radians(imu_state.roll)
             cr, sr = math.cos(roll_rad), math.sin(roll_rad)
             ox = int(cr * dx - sr * dy)
             oy = int(sr * dx + cr * dy)
-            # Canvas coordinate the cursor actually lands on
             canvas_x = hand.x * WIDTH  - ox
             canvas_y = hand.y * HEIGHT - oy
-            # Hit-test each item rect precisely — None if cursor misses all
-            items = self._submenu_items if self._submenu else self._items
             hit = None
-            for i in range(len(items)):
+            for i in range(n):
                 iy = ITEM_Y0 + i * ITEM_H
                 if ITEM_X <= canvas_x <= ITEM_X + ITEM_W and iy <= canvas_y <= iy + ITEM_H:
                     hit = i
@@ -327,10 +326,18 @@ class SettingsApp(BaseApp):
             if self._submenu:
                 self._submenu_hover = hit if hit is not None else self._submenu_hover
             else:
-                self._hover_idx = hit  # None = nothing highlighted
+                self._hover_idx = hit
+
         else:
-            # No hand — keep last highlight so caps still work
-            pass
+            # No hand — use pitch to navigate: tilt down = go down the list
+            # Pitch range roughly -30 to +30 covers the menu
+            pitch_clamped = max(-30.0, min(30.0, imu_state.pitch))
+            idx = int((pitch_clamped + 30.0) / 60.0 * n)
+            idx = max(0, min(n - 1, idx))
+            if self._submenu:
+                self._submenu_hover = idx
+            else:
+                self._hover_idx = idx
 
     def _handle_beta(self):
         if self._submenu:
