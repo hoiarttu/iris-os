@@ -421,7 +421,10 @@ class IrisOS:
 
             app_allows = (self._active_app is None or getattr(self._active_app, 'dlp_auto_off', True))
             
-            if in_view or cap_active or hand_active:
+            # Pocket/downward protection — pitch below -75° kills DLP hard
+            looking_down = imu_state.pitch < -75.0
+
+            if (in_view or cap_active or hand_active) and not looking_down:
                 self._dlp_off_timer = 0.0
                 if not self._dlp_on:
                     self._gpio.output(27, self._gpio.HIGH)
