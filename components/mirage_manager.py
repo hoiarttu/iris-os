@@ -112,19 +112,23 @@ class MirageManager:
     # ── Persistence ──────────────────────────────────────────────────────────
 
     def load(self):
-        if os.path.exists(self.path):
-            with open(self.path) as f:
-                raw = json.load(f)
-            self.mirages = []
-            for e in raw:
-                try:
-                    self.mirages.append(
-                        Mirage(e['azimuth'], e['elevation'],
-                               e.get('type', 'hexmenu')))
-                except Exception as ex:
-                    print(f'[Scene] Skipped: {ex}')
-        else:
+        self.mirages = []
+        try:
+            if os.path.exists(self.path):
+                with open(self.path) as f:
+                    raw = json.load(f)
+                for e in raw:
+                    try:
+                        self.mirages.append(
+                            Mirage(e['azimuth'], e['elevation'],
+                                   e.get('type', 'hexmenu')))
+                    except Exception as ex:
+                        print(f'[Scene] Skipped: {ex}')
+        except Exception as ex:
+            print(f'[Scene] Failed to load mirages.json ({ex}) — using default')
+        if not self.mirages:
             self.mirages = [Mirage(0.0, 0.0)]
+            self.save()   # write clean default immediately
         print(f'[Scene] {len(self.mirages)} mirage(s) loaded')
 
     def save(self):
