@@ -403,12 +403,8 @@ class IrisOS:
             if self.state == STATE_APP and self._active_app and getattr(self._active_app, 'pin_mode', 'pinned') != 'pinned':
                 in_view = True
 
-            raw_cap  = self.input._alpha_held or self.input._beta_held
-            if raw_cap:
-                self._cap_wake_t = getattr(self, '_cap_wake_t', 0.0) + dt
-            else:
-                self._cap_wake_t = 0.0
-            cap_active = raw_cap and self._cap_wake_t < 2.0
+            # Any cap press = wake, no timeout
+            cap_active = self.input._alpha_held or self.input._beta_held
 
             # Hand stuck failsafe (if hand doesn't move 1 pixel for 2s, ignore it)
             hand_active = False
