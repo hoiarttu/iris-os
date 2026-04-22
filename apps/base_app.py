@@ -37,7 +37,8 @@ class BaseApp:
     show_cursor   = True
 
     # DLP
-    dlp_auto_off  = True    # set False to prevent auto sleep (media apps etc.)
+    dlp_auto_off      = True    # set False to prevent auto sleep (media apps etc.)
+    dlp_sleep_on_still = False  # set True to sleep after 30s no movement (like menu)
 
     # Input
     cap_hold_secs = 0.0        # min hold before alpha/beta register
