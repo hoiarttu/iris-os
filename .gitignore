@@ -3,3 +3,7 @@ __pycache__/
 *.bak
 assets/media/
 assets/media/
+iris_boot.sh
+iris_launcher.sh
+start_iris.sh
+whitenoise.py
