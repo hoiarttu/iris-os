@@ -572,6 +572,11 @@ class IrisOS:
         elif key == pygame.K_BACKSPACE:
             if self.state == STATE_APP:
                 self.close_app()
+        elif key == pygame.K_ESCAPE:
+            if self.state == STATE_APP:
+                self.close_app()
+            else:
+                self._running = False
         elif key == pygame.K_z:
             self._handle_cap(EVT_BACK)
         elif key == pygame.K_x:
