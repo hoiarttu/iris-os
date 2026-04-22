@@ -420,22 +420,44 @@ class IrisOS:
                     hand_active = True
 
             app_allows = (self._active_app is None or getattr(self._active_app, 'dlp_auto_off', True))
-            
+
             # Orientation protection — kill DLP if looking down (pocket/bag)
-            # Roll is clamped to ±75 by IMU so can't detect upside-down via roll
-            # Ceiling projection (pitch > 75 looking up) is legitimate — allowed
             bad_orientation = imu_state.pitch < -75.0
 
-            if (in_view or cap_active or hand_active) and not bad_orientation:
+            # Still timer — track movement via yaw+pitch delta
+            dyaw   = abs(angle_diff(imu_state.yaw,   getattr(self, '_still_yaw',   imu_state.yaw)))
+            dpitch = abs(imu_state.pitch - getattr(self, '_still_pitch', imu_state.pitch))
+            moving = (dyaw + dpitch) > 0.4
+            self._still_yaw   = imu_state.yaw
+            self._still_pitch = imu_state.pitch
+
+            if moving or cap_active or hand_active:
+                self._dlp_still_timer = 0.0
+            else:
+                self._dlp_still_timer += dt
+
+            # Still sleep: menu always after 30s, apps only if opted in
+            STILL_SECS = 30.0
+            still_sleep = (
+                self._dlp_still_timer >= STILL_SECS and
+                (self.state == STATE_MENU or
+                 getattr(self._active_app, 'dlp_sleep_on_still', False))
+            )
+
+            if (in_view or cap_active or hand_active) and not bad_orientation and not still_sleep:
                 self._dlp_off_timer = 0.0
                 if not self._dlp_on:
                     self._gpio.output(27, self._gpio.HIGH)
                     self._dlp_on = True
+                    self._dlp_still_timer = 0.0
             else:
                 self._dlp_off_timer += dt
+                reason = ('orientation' if bad_orientation else
+                          'still'       if still_sleep     else 'out of view')
                 if self._dlp_off_timer >= 1.5 and self._dlp_on and app_allows:
                     self._gpio.output(27, self._gpio.LOW)
                     self._dlp_on = False
+                    print(f'[IRIS] DLP off ({reason})')
         except Exception as e:
             print(f"[IRIS] DLP Logic Error: {e}")
 
