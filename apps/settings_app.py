@@ -329,15 +329,35 @@ class SettingsApp(BaseApp):
                 self._hover_idx = hit
 
         else:
-            # No hand — use pitch to navigate: tilt down = go down the list
-            # Pitch range roughly -30 to +30 covers the menu
-            pitch_clamped = max(-30.0, min(30.0, imu_state.pitch))
-            idx = int((pitch_clamped + 30.0) / 60.0 * n)
-            idx = max(0, min(n - 1, idx))
+            # No hand — use IMU gaze point on canvas, same math as hex menu
+            import math
+            from core.geometry import angle_diff
+            from core.display import WIDTH, HEIGHT
+            mirage_az = 0.0
+            if self._os_ref and self._os_ref._active_mirage:
+                mirage_az = self._os_ref._active_mirage.azimuth
+            PX_YAW, PX_PITCH = 28, 24
+            yaw_diff = angle_diff(imu_state.yaw, mirage_az)
+            yaw_sign = 1 if ((imu_state.yaw - mirage_az + 360) % 360) < 180 else -1
+            dx = -yaw_sign * yaw_diff * PX_YAW
+            dy = -imu_state.pitch * PX_PITCH
+            roll_rad = math.radians(imu_state.roll)
+            cr, sr = math.cos(roll_rad), math.sin(roll_rad)
+            ox = int(cr * dx - sr * dy)
+            oy = int(sr * dx + cr * dy)
+            # Gaze lands at canvas center offset by IMU
+            gaze_x = WIDTH  // 2 - ox
+            gaze_y = HEIGHT // 2 - oy
+            hit = None
+            for i in range(n):
+                iy = ITEM_Y0 + i * ITEM_H
+                if ITEM_X <= gaze_x <= ITEM_X + ITEM_W and iy <= gaze_y <= iy + ITEM_H:
+                    hit = i
+                    break
             if self._submenu:
-                self._submenu_hover = idx
+                self._submenu_hover = hit if hit is not None else self._submenu_hover
             else:
-                self._hover_idx = idx
+                self._hover_idx = hit
 
     def _handle_beta(self):
         if self._submenu:
