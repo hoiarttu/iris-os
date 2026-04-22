@@ -298,6 +298,8 @@ class SettingsApp(BaseApp):
             self._hand_y = hand.y
             from core.geometry import angle_diff
             import math
+            # Compute the same pinned-canvas offset the kernel applies,
+            # then un-shift the hand screen position to get canvas coords.
             mirage_az = 0.0
             if self._os_ref and self._os_ref._active_mirage:
                 mirage_az = self._os_ref._active_mirage.azimuth
@@ -311,20 +313,34 @@ class SettingsApp(BaseApp):
             cr, sr = math.cos(roll_rad), math.sin(roll_rad)
             ox = int(cr * dx - sr * dy)
             oy = int(sr * dx + cr * dy)
+            # Canvas coordinate the cursor actually lands on
+            canvas_x = hand.x * WIDTH  - ox
             canvas_y = hand.y * HEIGHT - oy
-            n = len(self._submenu_items) if self._submenu else len(self._items)
-            idx = int((canvas_y - ITEM_Y0) / ITEM_H)
-            idx = max(0, min(n - 1, idx))
+            # Hit-test each item rect precisely — None if cursor misses all
+            items = self._submenu_items if self._submenu else self._items
+            hit = None
+            for i in range(len(items)):
+                iy = ITEM_Y0 + i * ITEM_H
+                if ITEM_X <= canvas_x <= ITEM_X + ITEM_W and iy <= canvas_y <= iy + ITEM_H:
+                    hit = i
+                    break
             if self._submenu:
-                self._submenu_hover = idx
+                self._submenu_hover = hit if hit is not None else self._submenu_hover
             else:
-                self._hover_idx = idx
+                self._hover_idx = hit  # None = nothing highlighted
+        else:
+            # No hand — keep last highlight so caps still work
+            pass
 
     def _handle_beta(self):
         if self._submenu:
+            if self._submenu_hover is None:
+                return
             self._status_action = self._submenu_items[self._submenu_hover]
             self._do_submenu_action(self._submenu_hover)
         else:
+            if self._hover_idx is None:
+                return
             action = self._items[self._hover_idx]['action']
             self._status_action = action
             self._do_action(action)
@@ -333,7 +349,10 @@ class SettingsApp(BaseApp):
         if self._submenu:
             self._submenu = None
         else:
-            self._hover_idx = max(0, self._hover_idx - 1)
+            if self._hover_idx is None:
+                self._hover_idx = 0
+            else:
+                self._hover_idx = max(0, self._hover_idx - 1)
 
     def _handle_alpha_held(self):
         pass   # prevent clear canvas from base
@@ -424,7 +443,7 @@ class SettingsApp(BaseApp):
         else:
             for i, item in enumerate(self._items):
                 y   = ITEM_Y0 + i * ITEM_H
-                sel = (i == hover)
+                sel = (hover is not None and i == hover)
                 if y + ITEM_H > H - 30:
                     break
                 self._draw_item(surface, i, item, sel, y)

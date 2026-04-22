@@ -22,10 +22,6 @@ EVT_HOME    = 'home'
 ESP32_BUS     = 11
 ESP32_ADDRESS = 0x42
 HOLD_SECS     = 0.5
-MIN_PRESS_SECS = 0.08   # must be held this long before release counts
-MIN_PRESS_SECS = 0.08   # cap must be held at least this long before release counts
-MIN_PRESS_SECS = 0.08   # cap must be held at least this long before release counts
-MIN_PRESS_SECS = 0.08   # must be held this long before release counts
 MIN_PRESS_SECS = 0.08   # cap must be held at least this long before release counts
 
 
