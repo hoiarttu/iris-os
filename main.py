@@ -444,7 +444,9 @@ class IrisOS:
                  getattr(self._active_app, 'dlp_sleep_on_still', False))
             )
 
-            if (in_view or cap_active or hand_active) and not bad_orientation and not still_sleep:
+            # still_sleep and bad_orientation override in_view
+            force_off = bad_orientation or still_sleep
+            if (in_view or cap_active or hand_active) and not force_off:
                 self._dlp_off_timer = 0.0
                 if not self._dlp_on:
                     self._gpio.output(27, self._gpio.HIGH)
