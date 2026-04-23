@@ -11,7 +11,7 @@ No subprocess calls in hot path.
 import os, time, threading
 import pygame
 from apps.base_app import BaseApp
-from core.display import WIDTH, HEIGHT, BLACK, WHITE, ACCENT
+from core.display import WIDTH, HEIGHT, BLACK, WHITE, ACCENT, SECONDARY
 
 _MONO_BOLD = 'assets/fonts/Rajdhani-Bold.ttf'
 
@@ -119,7 +119,6 @@ class SystemApp(BaseApp):
     cap_hold_secs = 0.0
 
     # Colors
-    COL_OK   = (80,  220, 255)   # IRIS cyan
     COL_WARN = (255, 220,  50)   # yellow
     COL_CRIT = (255,  80,  80)   # red
     COL_DIM  = (60,   60,  70)
@@ -177,7 +176,7 @@ class SystemApp(BaseApp):
     def _val_color(self, val, warn, crit):
         if val >= crit:  return self.COL_CRIT
         if val >= warn:  return self.COL_WARN
-        return self.COL_OK
+        return ACCENT
 
     def _bar(self, surface, x, y, w, h, frac, color):
         pygame.draw.rect(surface, self.COL_DIM,  (x, y, w, h), border_radius=3)
@@ -239,13 +238,13 @@ class SystemApp(BaseApp):
         y += 12
 
         # Connectivity
-        wifi_col = self.COL_OK if self._wifi != 'none' else self.COL_CRIT
+        wifi_col = ACCENT if self._wifi != 'none' else self.COL_CRIT
         wifi_txt = self._f_sm.render(
             f'WIFI  {self._wifi}', True, wifi_col)
         surface.blit(wifi_txt, (margin, y))
         y += 24
 
-        bt_col = self.COL_OK if self._bt else self.COL_DIM
+        bt_col = ACCENT if self._bt else self.COL_DIM
         bt_txt = self._f_sm.render(
             'BT    on' if self._bt else 'BT    off', True, bt_col)
         surface.blit(bt_txt, (margin, y))
