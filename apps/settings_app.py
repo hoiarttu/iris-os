@@ -175,6 +175,7 @@ class SettingsApp(BaseApp):
     # ── Actions ───────────────────────────────────────────────────────────────
 
     _DANGER_ACTIONS = {'reboot', 'shutdown', 'update'}
+    _SUBMENU_ACTIONS = {'wifi', 'accent'}  # these open submenus, no confirm needed
 
     def _do_action(self, action):
         if action == 'wifi':
@@ -386,26 +387,27 @@ class SettingsApp(BaseApp):
 
         action = self._items[self._hover_idx]['action']
 
-        # Dangerous actions require second beta to confirm
-        if action in self._DANGER_ACTIONS:
-            if self._confirm_pending == action and self._confirm_idx == self._hover_idx:
-                # Second press — execute
-                self._confirm_pending = None
-                self._confirm_idx     = None
-                self._status_action   = action
-                self._do_action(action)
-            else:
-                # First press — arm confirm
-                self._confirm_pending = action
-                self._confirm_idx     = self._hover_idx
-                self._set_status(f'Press β again to confirm')
+        # Submenus open immediately, no confirm
+        if action in self._SUBMENU_ACTIONS:
+            self._confirm_pending = None
+            self._confirm_idx     = None
+            self._status_action   = action
+            self._do_action(action)
             return
 
-        # Cancel any pending confirm if user moved to different item
-        self._confirm_pending = None
-        self._confirm_idx     = None
-        self._status_action   = action
-        self._do_action(action)
+        # All other actions require second beta to confirm
+        if self._confirm_pending == action and self._confirm_idx == self._hover_idx:
+            # Second press — execute
+            self._confirm_pending = None
+            self._confirm_idx     = None
+            self._status_action   = action
+            self._do_action(action)
+        else:
+            # First press — arm confirm
+            self._confirm_pending = action
+            self._confirm_idx     = self._hover_idx
+            label = 'CONFIRM?' if action in self._DANGER_ACTIONS else 'β again'
+            self._set_status(label)
 
     def _handle_alpha(self):
         if self._submenu:
