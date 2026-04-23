@@ -93,7 +93,7 @@ def main():
 
     frame = vs.read()
     fh, fw = frame.shape[:2]
-    print(f'[Pointer] Frame: {fw}x{fh} @ {TARGET_FPS} FPS')
+    print(f'[Pointer] Frame: {fw}x{fh} @ {ACTIVE_FPS} FPS')
 
     srv    = make_socket()
     client = None
