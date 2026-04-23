@@ -386,9 +386,13 @@ class IrisOS:
         _dr.HEX_BORDER_FOCUSED = (r, g, b)
         self.input.set_led(r, g, b, 0)
         # Secondary — same hue, darkened
-        sr = max(0, int(r * 0.30))
-        sg = max(0, int(g * 0.15))
-        sb = max(0, min(255, int(b * 0.70 + 50)))
+        # Special case: keep original IRIS purple for the default cyan theme
+        if (r, g, b) == (80, 220, 255):
+            sr, sg, sb = 80, 40, 180
+        else:
+            sr = max(0, int(r * 0.30))
+            sg = max(0, int(g * 0.15))
+            sb = max(0, min(255, int(b * 0.70 + 50)))
         _cd.SECONDARY          = (sr, sg, sb)
         _dr.HEX_BORDER_IDLE    = (sr, sg, sb)
         _sa.COL_SEL            = (r, g, b)
