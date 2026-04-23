@@ -86,6 +86,10 @@ class SettingsApp(BaseApp):
         self._calibrating = False
         self._calibrate_t = 0.0
 
+        # Confirm state for dangerous actions
+        self._confirm_pending = None   # action string awaiting second beta
+        self._confirm_idx     = None   # item index that needs confirm
+
         # Build menu
         self._build_menu()
 
@@ -169,6 +173,8 @@ class SettingsApp(BaseApp):
         return 'Custom'
 
     # ── Actions ───────────────────────────────────────────────────────────────
+
+    _DANGER_ACTIONS = {'reboot', 'shutdown', 'update'}
 
     def _do_action(self, action):
         if action == 'wifi':
@@ -326,6 +332,10 @@ class SettingsApp(BaseApp):
             if self._submenu:
                 self._submenu_hover = hit if hit is not None else self._submenu_hover
             else:
+                # Cancel pending confirm if gaze moved away
+                if hit != self._confirm_idx:
+                    self._confirm_pending = None
+                    self._confirm_idx     = None
                 self._hover_idx = hit
 
         else:
@@ -357,6 +367,10 @@ class SettingsApp(BaseApp):
             if self._submenu:
                 self._submenu_hover = hit if hit is not None else self._submenu_hover
             else:
+                # Cancel pending confirm if gaze moved away
+                if hit != self._confirm_idx:
+                    self._confirm_pending = None
+                    self._confirm_idx     = None
                 self._hover_idx = hit
 
     def _handle_beta(self):
@@ -365,12 +379,33 @@ class SettingsApp(BaseApp):
                 return
             self._status_action = self._submenu_items[self._submenu_hover]
             self._do_submenu_action(self._submenu_hover)
-        else:
-            if self._hover_idx is None:
-                return
-            action = self._items[self._hover_idx]['action']
-            self._status_action = action
-            self._do_action(action)
+            return
+
+        if self._hover_idx is None:
+            return
+
+        action = self._items[self._hover_idx]['action']
+
+        # Dangerous actions require second beta to confirm
+        if action in self._DANGER_ACTIONS:
+            if self._confirm_pending == action and self._confirm_idx == self._hover_idx:
+                # Second press — execute
+                self._confirm_pending = None
+                self._confirm_idx     = None
+                self._status_action   = action
+                self._do_action(action)
+            else:
+                # First press — arm confirm
+                self._confirm_pending = action
+                self._confirm_idx     = self._hover_idx
+                self._set_status(f'Press β again to confirm')
+            return
+
+        # Cancel any pending confirm if user moved to different item
+        self._confirm_pending = None
+        self._confirm_idx     = None
+        self._status_action   = action
+        self._do_action(action)
 
     def _handle_alpha(self):
         if self._submenu:
@@ -434,10 +469,14 @@ class SettingsApp(BaseApp):
         sub = self._f_sub.render(item['sub'], True, COL_SUBTEXT)
         surface.blit(sub, (x + 16, y + 30))
 
-        # Right-aligned status
+        # Right-aligned status / confirm prompt
         import time
+        is_confirm = (item.get('action') == getattr(self, '_confirm_pending', None) and idx == getattr(self, '_confirm_idx', None))
         is_status_target = (item.get('action') == getattr(self, '_status_action', None)) or (item.get('label') == getattr(self, '_status_action', None))
-        if is_status_target and self._status_msg and time.time() - self._status_t < 4.0:
+        if is_confirm:
+            sm = self._f_small.render('β confirm', True, COL_WARN)
+            surface.blit(sm, (x + w - sm.get_width() - 16, y + h // 2 - sm.get_height() // 2))
+        elif is_status_target and self._status_msg and time.time() - self._status_t < 4.0:
             sm = self._f_small.render(self._status_msg, True, COL_SEL)
             surface.blit(sm, (x + w - sm.get_width() - 16, y + h // 2 - sm.get_height() // 2))
 
