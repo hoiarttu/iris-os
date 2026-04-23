@@ -29,6 +29,7 @@ clock = pygame.time.Clock()
 BLACK      = (  0,   0,   0)
 WHITE      = (255, 255, 255)
 ACCENT     = ( 80, 220, 255)
+SECONDARY  = ( 80,  40, 180)   # complementary to accent — updated by _apply_accent
 DIM        = ( 18,  18,  28)
 HIGHLIGHT  = (255, 255, 100)
 HEX_NORMAL = ( 60, 130, 220)

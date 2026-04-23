@@ -11,7 +11,7 @@ Navigation:
 import os, json, subprocess, time
 import pygame
 from apps.base_app import BaseApp
-from core.display import WIDTH, HEIGHT, BLACK, WHITE, ACCENT
+from core.display import WIDTH, HEIGHT, BLACK, WHITE, ACCENT, SECONDARY
 from core.config  import load_config, save_config
 
 _MONO_BOLD = 'assets/fonts/Rajdhani-Bold.ttf'
