@@ -234,16 +234,9 @@ class MirageManager:
 
         for m in self.mirages:
             m.visible = True
-            # Only update background apps when menu is visible
-            # Active app is updated by the kernel in STATE_APP
-            from core.display import WIDTH, HEIGHT
-            import os as _os
-            in_menu = (self.os_ref is None or
-                       getattr(self.os_ref, 'state', 'menu') == 'menu')
-            if in_menu:
-                for app in m.apps:
-                    if app:
-                        app.update(dt)
+            for app in m.apps:
+                if app:
+                    app.update(dt)
 
             if m.type == 'hexmenu':
                 sel, cpt0 = self._render_hexmenu(m, imu_state, dt, cursor_pos)
