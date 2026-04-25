@@ -65,7 +65,7 @@ class HandClient:
                 self.x      = msg['x']
                 self.y      = msg['y']
                 self.pinch  = msg['pinch']
-                self.active = True
+                self.active = msg.get('active', True)
                 break
         except BlockingIOError:
             pass

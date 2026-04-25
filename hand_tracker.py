@@ -179,7 +179,7 @@ def main():
                 print(f'[BUFFER: {len(hist_x)}] out=({mx:.2f},{my:.2f})    ', end='\r')
                 
                 try:
-                    msg = json.dumps({'x': mx, 'y': my, 'pinch': False}) + '\n'
+                    msg = json.dumps({'x': mx, 'y': my, 'pinch': False, 'active': found_hand}) + '\n'
                     client.sendall(msg.encode())
                 except (BrokenPipeError, BlockingIOError):
                     client = None
