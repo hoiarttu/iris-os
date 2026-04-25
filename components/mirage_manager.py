@@ -15,6 +15,7 @@ from components.draw    import draw_hex_border, draw_pointer
 import pygame as _pg
 from apps.clock_app     import ClockApp
 
+
 _CURSOR_SURF = None
 def _get_cursor():
     global _CURSOR_SURF
@@ -33,6 +34,7 @@ from apps.system_app      import SystemApp
 from apps.testgame_app    import TestgameApp
 from apps.etch_app        import EtchApp
 from apps.settings_app    import SettingsApp
+from apps.stocks_app      import StockApp
 
 # ── Tuning ────────────────────────────────────────────────────────────────────
 
@@ -53,7 +55,7 @@ def default_apps():
         EtchApp(),
         SettingsApp(),
         PlaceholderApp('Comms'),
-        PlaceholderApp('Vision'),
+        StockApp(),
     ]
 
 # ── Mirage ────────────────────────────────────────────────────────────────────
@@ -157,6 +159,8 @@ class MirageManager:
         self._spawn_forced = True
 
     def confirm_selection(self, os_ref):
+        if self._spawning:
+            return   # block selection during spawn animation
         if self._sel_mirage and self._sel_idx is not None:
             app = self._sel_mirage.apps[self._sel_idx]
             if app and os_ref:
