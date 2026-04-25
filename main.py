@@ -205,6 +205,9 @@ class IrisOS:
             # for gesture in gesture_list:
             #     self._handle_gesture(gesture)
 
+            # ── Thermal management
+            self._update_thermal(dt)
+
             # ── DLP power management ──────────────────────────────────────────
             self._update_dlp(imu_state, dt)
 
@@ -403,6 +406,40 @@ class IrisOS:
         print(f'[IRIS] Accent {rgb} → secondary ({sr},{sg},{sb})')
 
     # ── DLP power management ─────────────────────────────────────────────────────
+
+    def _update_thermal(self, dt):
+        # Read CPU temp every 2s, scale FPS, shut DLP if overheating
+        self._thermal_tick = getattr(self, '_thermal_tick', 0.0) + dt
+        if self._thermal_tick < 2.0:
+            return
+        self._thermal_tick = 0.0
+        try:
+            with open('/sys/class/thermal/thermal_zone0/temp') as _f:
+                temp = int(_f.read().strip()) / 1000.0
+        except Exception:
+            return
+        self._last_temp = temp
+        if temp >= 70.0:
+            print(f'[IRIS] OVERHEAT {temp:.0f}C - emergency DLP off')
+            if getattr(self, '_gpio', None):
+                self._gpio.output(27, self._gpio.LOW)
+                self._dlp_on = False
+            import core.display as _cd
+            _cd.FPS = 15
+            open('/tmp/iris_tracker_fps', 'w').write('0')
+            return
+        if temp <= 50.0:
+            target_fps  = 90
+            tracker_fps = 20
+        else:
+            frac        = (temp - 50.0) / 20.0
+            target_fps  = int(90 - frac * 60)
+            tracker_fps = int(20 - frac * 15)
+        import core.display as _cd
+        if _cd.FPS != target_fps:
+            print(f'[IRIS] Thermal: {temp:.0f}C -> {target_fps}fps, tracker {tracker_fps}fps')
+            _cd.FPS = target_fps
+        open('/tmp/iris_tracker_fps', 'w').write(str(tracker_fps))
 
     def _update_dlp(self, imu_state, dt):
         if not getattr(self, '_gpio', None): return
