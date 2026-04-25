@@ -191,8 +191,10 @@ class IrisOS:
                     self._active_app.on_event(event)
 
             # ── Hardware input ────────────────────────────────────────────────
-            for cap_event in self.input.get_events():
-                self._handle_cap(cap_event)
+            # Block cap input during spawn animation to prevent crashes
+            if not self.scene._spawning:
+                for cap_event in self.input.get_events():
+                    self._handle_cap(cap_event)
 
             if getattr(self, "_cal_thread_started", False):
                 imu_state = self.imu.state
