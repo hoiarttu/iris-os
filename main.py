@@ -429,12 +429,12 @@ class IrisOS:
             open('/tmp/iris_tracker_fps', 'w').write('0')
             return
         if temp <= 50.0:
-            target_fps  = 90
-            tracker_fps = 20
+            target_fps  = 60
+            tracker_fps = 15
         else:
             frac        = (temp - 50.0) / 20.0
-            target_fps  = int(90 - frac * 60)
-            tracker_fps = int(20 - frac * 15)
+            target_fps  = int(60 - frac * 45)   # 60fps at 50C -> 15fps at 70C
+            tracker_fps = int(15 - frac * 12)   # 15fps at 50C -> 3fps at 70C
         import core.display as _cd
         if _cd.FPS != target_fps:
             print(f'[IRIS] Thermal: {temp:.0f}C -> {target_fps}fps, tracker {tracker_fps}fps')
