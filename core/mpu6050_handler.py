@@ -77,8 +77,10 @@ class RealIMU:
             time.sleep(0.005)
         self._pitch_offset = pacc / 100
         self._roll_offset  = racc / 100
+        # Apply offset immediately — start pitch at negative of mount angle
+        # so looking straight ahead = pitch 0
+        self._state.pitch = -self._pitch_offset
         print(f'[IMU] Bias: {self._bias}  pitch_offset={self._pitch_offset:.1f}  roll_offset={self._roll_offset:.1f}')
-        # Save bias to file
         from core.config import save_bias
         save_bias({'bias': self._bias,
                    'pitch_offset': self._pitch_offset,
@@ -94,6 +96,7 @@ class RealIMU:
             self._pitch_offset = data.get('pitch_offset', 0.0)
             self._roll_offset  = data.get('roll_offset',  0.0)
             self._state        = OrientationState()
+            self._state.pitch  = -self._pitch_offset
             self._last_time    = time.time()
             print(f'[IMU] Bias loaded from file')
             return True
