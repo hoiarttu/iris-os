@@ -523,15 +523,19 @@ class SettingsApp(BaseApp):
         surface.blit(hint, (W - hint.get_width() - 20, H - 20))
 
     def draw_icon(self, surface, center, radius):
-        try:
-            img = pygame.image.load('assets/iris-app-settings.png').convert_alpha()
-            size = int(radius * 1.4)
-            img = pygame.transform.smoothscale(img, (size, size))
-            r = img.get_rect(center=center)
-            surface.blit(img, r)
-        except Exception:
-            r = self._icon_surf.get_rect(center=center)
-            surface.blit(self._icon_surf, r)
+        # Cache scaled icon surface — load once, reuse every frame
+        cache_key = int(radius * 1.4)
+        if getattr(self, '_icon_cache_size', None) != cache_key:
+            try:
+                img = pygame.image.load('assets/iris-app-settings.png').convert_alpha()
+                size = cache_key
+                self._icon_cache = pygame.transform.smoothscale(img, (size, size))
+                self._icon_cache_size = cache_key
+            except Exception:
+                self._icon_cache = self._icon_surf
+                self._icon_cache_size = cache_key
+        r = self._icon_cache.get_rect(center=center)
+        surface.blit(self._icon_cache, r)
 
     def draw_widget(self, surface, rect):
         nr = self._name_surf.get_rect(centerx=rect.centerx,
