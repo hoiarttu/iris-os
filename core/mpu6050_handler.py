@@ -126,8 +126,7 @@ class RealIMU:
         self._state.pitch += gp * dt
         gyro_mag = abs(gyro[self.pitch_axis] - self._bias[self.pitch_axis])
         if gyro_mag < 1.0:
-            # Drift correction pulls toward offset (mount angle), not zero
-            self._state.pitch += (-self._pitch_offset - self._state.pitch) * 0.001
+            self._state.pitch *= 0.999
         self._state.pitch = max(-89.0, min(89.0, self._state.pitch))
 
         # Roll — two formula, orientation aware
@@ -139,7 +138,9 @@ class RealIMU:
             ar = 0.0
         else:
             ar = math.degrees(math.atan2(ax, ay))
-        self._state.roll = max(-75.0, min(75.0, 0.9 * self._state.roll + 0.1 * ar))
+        # Correct for mount angle — pull toward roll offset, not zero
+        ar_corrected = ar - self._roll_offset
+        self._state.roll = max(-75.0, min(75.0, 0.9 * self._state.roll + 0.1 * ar_corrected))
 
         self._state.timestamp = now
         return self._state
