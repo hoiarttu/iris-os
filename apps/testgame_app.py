@@ -208,9 +208,20 @@ class TestgameApp(BaseApp): #The main app
                       self.all_sprites.add(T2)
 
 
-    def draw_icon(self, surface, center, radius): #Draws icon hexagon in main menu
-        r = self._icon_surf.get_rect(center=center)
-        surface.blit(self._icon_surf, r)
+    def draw_icon(self, surface, center, radius):
+        cache_key = int(radius * 1.4)
+        if getattr(self, '_icon_cache_size', None) != cache_key:
+            try:
+                img = pygame.image.load('assets/iris-app-targetgame.png').convert_alpha()
+                size = cache_key
+                self._icon_cache = pygame.transform.smoothscale(img, (size, size))
+                self._icon_cache_size = cache_key
+            except Exception:
+                self._icon_cache = getattr(self, '_icon_surf', None)
+                self._icon_cache_size = cache_key
+        if self._icon_cache:
+            r = self._icon_cache.get_rect(center=center)
+            surface.blit(self._icon_cache, r)
 
     def draw_widget(self, surface, rect): #Draws the middle hexagon in main menu. Image of target should be good enough for test purposes
         

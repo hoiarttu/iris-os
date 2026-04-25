@@ -188,8 +188,19 @@ class StockApp(BaseApp):
         pygame.draw.line(surface, self.COL_DIM, (40, y), (W - 40, y), 1)
 
     def draw_icon(self, surface, center, radius):
-        r = self._icon_surf.get_rect(center=center)
-        surface.blit(self._icon_surf, r)
+        cache_key = int(radius * 1.4)
+        if getattr(self, '_icon_cache_size', None) != cache_key:
+            try:
+                img = pygame.image.load('assets/iris-app-stocks.png').convert_alpha()
+                size = cache_key
+                self._icon_cache = pygame.transform.smoothscale(img, (size, size))
+                self._icon_cache_size = cache_key
+            except Exception:
+                self._icon_cache = getattr(self, '_icon_surf', None)
+                self._icon_cache_size = cache_key
+        if self._icon_cache:
+            r = self._icon_cache.get_rect(center=center)
+            surface.blit(self._icon_cache, r)
 
     def draw_widget(self, surface, rect):
         self._market_data = self._reader.get()
