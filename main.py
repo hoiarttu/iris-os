@@ -241,7 +241,7 @@ class IrisOS:
                     # Short tap — single or double
                     now = _t.time()
                     last_tap = getattr(self, '_both_last_tap', 0.0)
-                    if now - last_tap < 1.0:
+                    if now - last_tap < 1.5:
                         # Double tap — home
                         if self.state == STATE_APP:
                             self.close_app()
