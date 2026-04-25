@@ -244,8 +244,15 @@ class SystemApp(BaseApp):
         surface.blit(bt_txt, (margin, y))
 
     def draw_icon(self, surface, center, radius):
-        r = self._icon_surf.get_rect(center=center)
-        surface.blit(self._icon_surf, r)
+        try:
+            img = pygame.image.load('assets/iris-app-system.png').convert_alpha()
+            size = int(radius * 1.4)
+            img = pygame.transform.smoothscale(img, (size, size))
+            r = img.get_rect(center=center)
+            surface.blit(img, r)
+        except Exception:
+            r = self._icon_surf.get_rect(center=center)
+            surface.blit(self._icon_surf, r)
 
     def draw_widget(self, surface, rect):
         import core.display as _cd

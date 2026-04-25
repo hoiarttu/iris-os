@@ -228,8 +228,15 @@ class EtchApp(BaseApp):
                      (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 24))
 
     def draw_icon(self, surface, center, radius):
-        r = self._icon_surf.get_rect(center=center)
-        surface.blit(self._icon_surf, r)
+        try:
+            img = pygame.image.load('assets/iris-app-etch.png').convert_alpha()
+            size = int(radius * 1.4)
+            img = pygame.transform.smoothscale(img, (size, size))
+            r = img.get_rect(center=center)
+            surface.blit(img, r)
+        except Exception:
+            r = self._icon_surf.get_rect(center=center)
+            surface.blit(self._icon_surf, r)
 
     def draw_widget(self, surface, rect):
         nr = self._name_surf.get_rect(centerx=rect.centerx,
