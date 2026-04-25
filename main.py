@@ -213,7 +213,11 @@ class IrisOS:
             # ── DLP power management ──────────────────────────────────────────
             self._update_dlp(imu_state, dt)
 
-            # ── Both-caps hold logic (pin + home, unkillable) ─────────────────
+            # ── Both-caps hold logic ──────────────────────────────────────────
+            # Single tap  → recenter yaw
+            # Double tap  → home
+            # Hold 1.5s+  → pin mirage + home
+            # Hold 20s+   → wipe IMU bias + shutdown
             import time as _t
             both_raw = self.input._alpha_held and self.input._beta_held
             if both_raw:
@@ -221,38 +225,54 @@ class IrisOS:
             else:
                 self._both_loss_t = getattr(self, '_both_loss_t', 0.0) + dt
             both_now = self._both_loss_t < 0.25
+
             if both_now and not self._both_held:
                 self._both_held  = True
                 self._both_since = _t.time()
+
             elif not both_now and self._both_held:
                 held = _t.time() - self._both_since
                 self._recal_done = False
-                if held >= 1.5 and held < 5.0:
-                    # Long hold — pin + home
+
+                if held >= 1.5:
+                    # Long hold — pin mirage + home
                     self._do_pin_and_home(imu_state)
-                elif held >= 0.3 and held < 1.5 and self.state == STATE_APP:
-                    # Medium tap in app — exit app
-                    self.close_app()
+                elif held >= 0.3:
+                    # Short tap — single or double
+                    now = _t.time()
+                    last_tap = getattr(self, '_both_last_tap', 0.0)
+                    if now - last_tap < 1.0:
+                        # Double tap — home
+                        if self.state == STATE_APP:
+                            self.close_app()
+                        self._both_last_tap = 0.0
+                        print('[IRIS] Both-caps double tap — home')
+                    else:
+                        # Single tap — recenter yaw
+                        for m in self.scene.mirages:
+                            m.azimuth = imu_state.yaw
+                        self.scene.save()
+                        self._both_last_tap = now
+                        print('[IRIS] Both-caps single tap — recentered')
+
                 self._both_held = False
+
             elif both_now and self._both_held:
                 held = _t.time() - self._both_since
-                # While held, freeze display only
+                # While held, freeze display
                 if self.scene.mirages:
                     imu_state.yaw   = self.scene.mirages[0].azimuth
                     imu_state.pitch = 0.0
                     imu_state.roll  = 0.0
-                # 15s hold — recalibrate in background thread
-                if held >= 5.0 and not getattr(self, '_recal_done', False):
+                # 20s — wipe IMU bias + shutdown
+                if held >= 20.0 and not getattr(self, '_recal_done', False):
                     self._recal_done = True
-                    import threading as _th
-                    def _do_recal():
-                        print('[IRIS] Recalibrating IMU (background)...')
-                        self.imu.calibrate(500)
-                        print('[IRIS] Recalibration done')
-                    _th.Thread(target=_do_recal, daemon=True).start()
-                # 60s pocket dial shutdown
-                if held >= 20.0:
-                    print('[IRIS] 60s hold detected (pocket dial). Shutting down.')
+                    print('[IRIS] 20s hold — wiping IMU bias and shutting down')
+                    try:
+                        import os as _os2
+                        _os2.remove(_os2.path.expanduser('~/.iris/imu_bias.json'))
+                    except Exception:
+                        pass
                     self._power_action('shutdown')
 
             # ── Cap hold → app draw state ────────────────────────────────────────
