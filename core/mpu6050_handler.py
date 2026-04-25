@@ -67,7 +67,7 @@ class RealIMU:
                 acc[ax] += g[ax]
             time.sleep(0.005)
         self._bias      = {ax: acc[ax] / samples for ax in self._AXES}
-        self._state     = OrientationState()
+        self._state     = OrientationState()   # pitch/yaw/roll all zero
         self._last_time = time.time()
         pacc, racc = 0.0, 0.0
         for _ in range(100):
@@ -123,9 +123,7 @@ class RealIMU:
         self._state.pitch += gp * dt
         gyro_mag = abs(gyro[self.pitch_axis] - self._bias[self.pitch_axis])
         if gyro_mag < 1.0:
-            # Soft drift correction toward pitch offset (physical mount angle)
-            target = -self._pitch_offset
-            self._state.pitch += (target - self._state.pitch) * 0.001
+            self._state.pitch *= 0.999
         self._state.pitch = max(-89.0, min(89.0, self._state.pitch))
 
         # Roll — two formula, orientation aware
