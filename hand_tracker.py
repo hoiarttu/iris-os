@@ -15,7 +15,7 @@ from collections import deque
 
 SOCKET_PATH      = '/tmp/iris_hand.sock'
 CAMERA_INDEX     = 0
-ACTIVE_FPS       = 20.0
+ACTIVE_FPS       = 15.0
 IDLE_FPS         = 1.0
 IDLE_TIMEOUT     = 2.0     
 
@@ -23,7 +23,7 @@ IDLE_TIMEOUT     = 2.0
 LOWER_SKIN = np.array([0, 30, 60], dtype=np.uint8)
 UPPER_SKIN = np.array([20, 255, 255], dtype=np.uint8)
 
-MIN_AREA   = 1200          
+MIN_AREA   = 400          
 
 # --- DELAY vs. SMOOTHNESS TUNING ---
 # How many frames to average together. 
@@ -41,8 +41,8 @@ class CameraStream:
     def __init__(self, src=0):
         self.stream = cv2.VideoCapture(src)
         self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('Y','U','Y','V'))
-        self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-        self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+        self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, 160)
+        self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, 120)
         self.frame = None
         self.stopped = False
         
