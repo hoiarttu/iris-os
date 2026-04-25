@@ -20,10 +20,10 @@ IDLE_FPS         = 1.0
 IDLE_TIMEOUT     = 2.0     
 
 # --- HSV SKIN COLOR CALIBRATION ---
-LOWER_SKIN = np.array([0, 20, 70], dtype=np.uint8)
-UPPER_SKIN = np.array([20, 255, 255], dtype=np.uint8)
+LOWER_SKIN = np.array([0, 15, 40], dtype=np.uint8)
+UPPER_SKIN = np.array([25, 255, 255], dtype=np.uint8)
 
-MIN_AREA   = 400          
+MIN_AREA   = 1200          
 
 # --- DELAY vs. SMOOTHNESS TUNING ---
 # How many frames to average together. 
@@ -41,8 +41,8 @@ class CameraStream:
     def __init__(self, src=0):
         self.stream = cv2.VideoCapture(src)
         self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('Y','U','Y','V'))
-        self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, 160)
-        self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, 120)
+        self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+        self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
         self.frame = None
         self.stopped = False
         
