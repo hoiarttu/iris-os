@@ -174,7 +174,8 @@ class IrisOS:
     def run(self):
         self._running = True
         while self._running:
-            dt = clock.tick(FPS) / 1000.0
+            import core.display as _cd
+            dt = clock.tick(_cd.FPS) / 1000.0
 
             # ── Collect events ────────────────────────────────────────────────
             events = pygame.event.get()

@@ -38,11 +38,11 @@ COLORS = [
     (0,   0,   0),     # black (erase)
 ]
 
-BRUSH_RADIUS = 3
+BRUSH_RADIUS = 4
 
 
 class EtchApp(BaseApp):
-    name          = 'IRIS Etch'
+    name          = 'Etch'
     description   = 'Draw on the world'
     pin_mode      = 'free'
     show_cursor   = True
@@ -223,7 +223,7 @@ class EtchApp(BaseApp):
             surface.blit(dot, (WIDTH - 20, 10))
 
         hint = self._font_big.render(
-            'hold β=draw  β/α=color', True, (60, 60, 60))
+            'B = draw  A = color', True, (60, 60, 60))
         surface.blit(hint,
                      (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 24))
 

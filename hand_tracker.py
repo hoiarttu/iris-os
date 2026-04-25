@@ -31,7 +31,7 @@ MIN_AREA   = 400
 BUFFER_SIZE = 6
 
 # --- VIRTUAL TRACKPAD BOUNDARIES ---
-RAW_X_LEFT  = 0.60  
+RAW_X_LEFT  = 0.55  
 RAW_X_RIGHT = 0.10  
 RAW_Y_UP    = 0.80   # fingertip appears high in frame — push boundary down
 RAW_Y_DOWN  = 0.20  

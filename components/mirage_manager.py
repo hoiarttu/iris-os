@@ -36,11 +36,11 @@ from apps.settings_app    import SettingsApp
 
 # ── Tuning ────────────────────────────────────────────────────────────────────
 
-SMOOTH_T            = 0.15
+SMOOTH_T            = 0.01
 DWELL_SECS          = 0.6
 DEV_NO_DWELL        = True
-PX_PER_DEGREE_YAW   = 28
-PX_PER_DEGREE_PITCH = 24
+PX_PER_DEGREE_YAW   = 32
+PX_PER_DEGREE_PITCH = 32
 CURSOR_SMOOTH       = 0.35   # render-side lerp (lower = more smoothing)
 
 # ── Default apps ──────────────────────────────────────────────────────────────

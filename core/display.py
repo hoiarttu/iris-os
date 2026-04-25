@@ -23,7 +23,7 @@ pygame.mouse.set_visible(False)
 
 canvas = pygame.Surface((WIDTH, HEIGHT))
 
-FPS   = 30
+FPS   = 60
 clock = pygame.time.Clock()
 
 BLACK      = (  0,   0,   0)
