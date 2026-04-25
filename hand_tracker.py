@@ -20,8 +20,8 @@ IDLE_FPS         = 1.0
 IDLE_TIMEOUT     = 2.0     
 
 # --- HSV SKIN COLOR CALIBRATION ---
-LOWER_SKIN = np.array([0, 15, 40], dtype=np.uint8)
-UPPER_SKIN = np.array([25, 255, 255], dtype=np.uint8)
+LOWER_SKIN = np.array([0, 30, 60], dtype=np.uint8)
+UPPER_SKIN = np.array([20, 255, 255], dtype=np.uint8)
 
 MIN_AREA   = 1200          
 
