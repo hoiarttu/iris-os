@@ -159,18 +159,12 @@ class SystemApp(BaseApp):
     # ── Update ────────────────────────────────────────────────────────────────
 
     def update(self, dt):
-        # FPS counter
-        self._frames += 1
-        now = time.time()
-        if now - self._fps_t >= 1.0:
-            self._fps   = self._frames
-            self._frames = 0
-            self._fps_t  = now
-
-        # Read cached stats (never blocks)
-        self._cpu, self._temp, self._mem, self._wifi, self._bt = \
-            self._reader.get()
-
+        import core.display as _cd
+        self._fps = _cd.FPS
+        if not self._reader.is_alive():
+            print('[System] StatReader died — restarting')
+            self._reader = StatReader()
+            self._reader.start()
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _val_color(self, val, warn, crit):
@@ -254,6 +248,9 @@ class SystemApp(BaseApp):
         surface.blit(self._icon_surf, r)
 
     def draw_widget(self, surface, rect):
+        import core.display as _cd
+        self._fps = _cd.FPS
+        self._cpu, self._temp, self._mem, self._wifi, self._bt = self._reader.get()
         nr = self._name_surf.get_rect(
             centerx=rect.centerx, top=rect.top + 6)
         surface.blit(self._name_surf, nr)
