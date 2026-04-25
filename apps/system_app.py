@@ -211,7 +211,7 @@ class SystemApp(BaseApp):
 
         self._row(surface, margin, y,
                   'TEMP', f'{self._temp:.0f}°C',
-                  self._temp / 100,
+                  min(1.0, self._temp / 85.0),
                   self._val_color(self._temp, 65, 80))
         y += 36
 

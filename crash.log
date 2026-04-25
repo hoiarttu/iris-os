@@ -1,0 +1,31 @@
+
+
+X.Org X Server 1.20.11
+X Protocol Version 11, Revision 0
+Build Operating System: linux Raspbian
+Current Operating System: Linux raspberrypi 6.1.21-v7+ #1642 SMP Mon Apr  3 17:20:52 BST 2023 armv7l
+Kernel command line: coherent_pool=1M 8250.nr_uarts=0 snd_bcm2835.enable_headphones=0 snd_bcm2835.enable_hdmi=1 bcm2708_fb.fbwidth=480 bcm2708_fb.fbheight=854 bcm2708_fb.fbswap=1 smsc95xx.macaddr=B8:27:EB:B1:F4:94 vc_mem.mem_base=0x1ec00000 vc_mem.mem_size=0x20000000  quiet splash loglevel=0 logo.nologo vt.global_cursor_default=0 console=ttyS0,115200 console=tty1 root=PARTUUID=ecd2fcff-02 rootfstype=ext4 fsck.repair=yes rootwait modules-load=dwc2,g_ether plymouth.ignore-serial-consoles logo.nologo quiet splash loglevel=0 vt.global_cursor_default=0 consoleblank=1
+Build Date: 26 June 2025  12:56:19PM
+xorg-server 2:1.20.11-1+rpt3+deb11u16 (https://www.debian.org/support) 
+Current version of pixman: 0.40.0
+	Before reporting problems, check http://wiki.x.org
+	to make sure that you have the latest version.
+Markers: (--) probed, (**) from config file, (==) default setting,
+	(++) from command line, (!!) notice, (II) informational,
+	(WW) warning, (EE) error, (NI) not implemented, (??) unknown.
+(==) Log file: "/var/log/Xorg.1.log", Time: Sat Apr 25 18:51:23 2026
+(==) Using config directory: "/etc/X11/xorg.conf.d"
+(==) Using system config directory "/usr/share/X11/xorg.conf.d"
+<frozen importlib._bootstrap>:228: RuntimeWarning: Your system is neon capable but pygame was not built with support for it. The performance of some of your blits could be adversely affected. Consider enabling compile time detection with environment variables like PYGAME_DETECT_AVX2=1 if you are compiling without cross compilation.
+pygame 2.6.1 (SDL 2.0.14, Python 3.9.2)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+Traceback (most recent call last):
+  File "/home/iris/mirage_gui/main.py", line 46, in <module>
+    from components.mirage_manager import MirageManager
+  File "/home/iris/mirage_gui/components/mirage_manager.py", line 37, in <module>
+    from apps.stocks_app      import StockApp
+ModuleNotFoundError: No module named 'apps.stocks_app'
+xinit: connection to X server lost
+
+waiting for X server to shut down (II) Server terminated successfully (0). Closing log file.
+
