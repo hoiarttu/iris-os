@@ -28,12 +28,12 @@ class StatReader(threading.Thread):
         self.wifi   = 'none'
         self.bt     = False
         self._lock  = threading.Lock()
-        self._stop  = False
+        self._stopping = False
         self._prev_idle  = 0
         self._prev_total = 0
 
     def run(self):
-        while not self._stop:
+        while not self._stopping:
             cpu   = self._read_cpu()
             temp  = self._read_temp()
             mem   = self._read_mem()
@@ -52,7 +52,7 @@ class StatReader(threading.Thread):
             return self.cpu, self.temp, self.mem, self.wifi, self.bt
 
     def stop(self):
-        self._stop = True
+        self._stopping = True
 
     def _read_cpu(self):
         try:
