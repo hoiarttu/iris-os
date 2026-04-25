@@ -238,22 +238,11 @@ class IrisOS:
                     # Long hold — pin mirage + home
                     self._do_pin_and_home(imu_state)
                 elif held >= 0.3:
-                    # Short tap — single or double
-                    now = _t.time()
-                    last_tap = getattr(self, '_both_last_tap', 0.0)
-                    if now - last_tap < 1.5:
-                        # Double tap — home
-                        if self.state == STATE_APP:
-                            self.close_app()
-                        self._both_last_tap = 0.0
-                        print('[IRIS] Both-caps double tap — home')
-                    else:
-                        # Single tap — recenter yaw
-                        for m in self.scene.mirages:
-                            m.azimuth = imu_state.yaw
-                        self.scene.save()
-                        self._both_last_tap = now
-                        print('[IRIS] Both-caps single tap — recentered')
+                    # Short tap — recenter yaw to current gaze
+                    for m in self.scene.mirages:
+                        m.azimuth = imu_state.yaw
+                    self.scene.save()
+                    print('[IRIS] Both-caps tap — recentered')
 
                 self._both_held = False
 
