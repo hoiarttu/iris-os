@@ -485,7 +485,7 @@ class IrisOS:
             if moving or cap_active or hand_active:
                 self._dlp_still_timer = 0.0
             else:
-                self._dlp_still_timer = getattr(self, '_dlp_still_timer', 0.0) + dt
+                self._dlp_still_timer += dt
 
             still_sleep = (
                 self._dlp_still_timer >= 30.0 and
@@ -499,7 +499,6 @@ class IrisOS:
 
             if (in_view or cap_active or hand_active) and not force_off:
                 self._dlp_off_timer = 0.0
-                self._dlp_still_timer = 0.0 if not moving else self._dlp_still_timer
                 if not self._dlp_on:
                     self._gpio.output(27, self._gpio.HIGH)
                     self._dlp_on = True
