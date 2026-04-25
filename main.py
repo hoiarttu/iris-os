@@ -156,7 +156,7 @@ class IrisOS:
         try:
             tracker_path = os.path.join(os.path.dirname(__file__), 'hand_tracker.py')
             self._tracker_proc = subprocess.Popen(
-                [sys.executable, tracker_path],
+                ['nice', '-n', '-5', sys.executable, tracker_path],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
