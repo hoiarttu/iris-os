@@ -185,14 +185,24 @@ def main():
                     client = None
 
             elapsed = time.time() - t0
-            
+
+            # --- THERMAL THROTTLE ---
+            try:
+                thermal_fps = float(open('/tmp/iris_tracker_fps').read().strip())
+            except Exception:
+                thermal_fps = ACTIVE_FPS
+            if thermal_fps == 0:
+                time.sleep(1.0)   # frozen — check again in 1s
+                continue
+
             # --- ADAPTIVE FRAMERATE ---
             if found_hand:
                 idle_timer = 0.0
-                target_fps = ACTIVE_FPS
+                target_fps = min(ACTIVE_FPS, thermal_fps)
             else:
                 idle_timer += elapsed
-                target_fps = IDLE_FPS if idle_timer >= IDLE_TIMEOUT else ACTIVE_FPS
+                base_fps   = IDLE_FPS if idle_timer >= IDLE_TIMEOUT else ACTIVE_FPS
+                target_fps = min(base_fps, thermal_fps)
 
             wait = (1.0 / target_fps) - elapsed
             if wait > 0: time.sleep(wait)
