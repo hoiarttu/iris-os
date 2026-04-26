@@ -405,7 +405,7 @@ class IrisOS:
         if (r, g, b) == (80, 220, 255):
             sr, sg, sb = 80, 40, 180    # IRIS cyan → IRIS purple
         elif (r, g, b) == (255, 255, 255):
-            sr, sg, sb = 80, 220, 255   # White → cyan secondary
+            sr, sg, sb = 40, 40, 55    # White → dark slate secondary
         else:
             sr = max(0, int(r * 0.30))
             sg = max(0, int(g * 0.15))
