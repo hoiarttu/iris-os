@@ -67,16 +67,9 @@ class FlashlightApp(BaseApp):
 
         if self._current_frac > 0.01:
             color = self._get_color()
-            # Black rect slightly larger underneath to mask edge antialiasing glitch
-            pygame.draw.rect(surface, (0, 0, 0),
-                             pygame.Rect(PADDING - 2, PADDING - 2,
-                                         w - (PADDING - 2) * 2,
-                                         h - (PADDING - 2) * 2),
-                             border_radius=CORNER_RADIUS + 2)
-            pygame.draw.rect(surface, color,
-                             pygame.Rect(PADDING, PADDING,
-                                         w - PADDING * 2, h - PADDING * 2),
-                             border_radius=CORNER_RADIUS)
+            rect = pygame.Rect(PADDING, PADDING,
+                               w - PADDING * 2, h - PADDING * 2)
+            pygame.draw.rect(surface, color, rect, border_radius=CORNER_RADIUS)
 
         # Intensity label
         label = INTENSITY_LABELS[self._intensity_idx] if self._on else 'OFF'
