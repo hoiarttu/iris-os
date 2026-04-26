@@ -13,8 +13,8 @@ from apps.base_app import BaseApp
 
 _MONO_BOLD = 'assets/fonts/Rajdhani-Bold.ttf'
 
-INTENSITIES       = [0.25, 0.5, 0.75, 1.0]
-INTENSITY_LABELS  = ['25%', '50%', '75%', '100%']
+INTENSITIES       = [0.5, 1.0]
+INTENSITY_LABELS  = ['50%', '100%']
 LERP_SPEED        = 4.0   # brightness transition speed
 PADDING           = 48    # px inset from screen edge
 CORNER_RADIUS     = 32
