@@ -35,6 +35,7 @@ from apps.testgame_app    import TestgameApp
 from apps.etch_app        import EtchApp
 from apps.settings_app    import SettingsApp
 from apps.stocks_app      import StockApp
+from apps.flashlight_app  import FlashlightApp
 
 # ── Tuning ────────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ def default_apps():
         SystemApp(),
         EtchApp(),
         SettingsApp(),
-        PlaceholderApp('Comms'),
+        FlashlightApp(),
         StockApp(),
     ]
 
