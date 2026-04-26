@@ -13,8 +13,8 @@ from apps.base_app import BaseApp
 
 _MONO_BOLD = 'assets/fonts/Rajdhani-Bold.ttf'
 
-INTENSITIES       = [0.25, 0.5, 0.75, 1.0]
-INTENSITY_LABELS  = ['25%', '50%', '75%', '100%']
+INTENSITIES       = [0.5, 1.0]
+INTENSITY_LABELS  = ['50%', '100%']
 LERP_SPEED        = 4.0   # brightness transition speed
 PADDING           = 48    # px inset from screen edge
 CORNER_RADIUS     = 32
@@ -67,6 +67,11 @@ class FlashlightApp(BaseApp):
 
         if self._current_frac > 0.01:
             color = self._get_color()
+            # Slightly larger black rect underneath to hide edge glitch
+            bg_rect = pygame.Rect(PADDING - 4, PADDING - 4,
+                                  w - (PADDING - 4) * 2, h - (PADDING - 4) * 2)
+            pygame.draw.rect(surface, (0, 0, 0), bg_rect,
+                             border_radius=CORNER_RADIUS + 4)
             rect = pygame.Rect(PADDING, PADDING,
                                w - PADDING * 2, h - PADDING * 2)
             pygame.draw.rect(surface, color, rect, border_radius=CORNER_RADIUS)
