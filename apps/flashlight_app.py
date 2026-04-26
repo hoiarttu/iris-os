@@ -31,7 +31,7 @@ class FlashlightApp(BaseApp):
     def __init__(self):
         super().__init__()
         self._on            = True
-        self._intensity_idx = 3      # start at 100%
+        self._intensity_idx = len(INTENSITIES) - 1  # start at max
         self._current_frac  = 1.0   # smoothed brightness
         self._target_frac   = 1.0
 
