@@ -25,8 +25,7 @@ class PlaceholderApp(BaseApp):
     def draw_icon(self, surface, center, radius):
         # Use named icon if available, fall back to text
         icon_map = {
-            'Comms':  'assets/iris-app-comms.png',
-            'Vision': 'assets/iris-mirageOS-icon.png',
+            'Comms': 'assets/iris-app-comms.png',
         }
         iconpath = icon_map.get(self.name)
         cache_key = int(radius * 1.4)
