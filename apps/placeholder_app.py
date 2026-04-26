@@ -23,8 +23,27 @@ class PlaceholderApp(BaseApp):
             name[:2].upper(), True, (255, 255, 255))
 
     def draw_icon(self, surface, center, radius):
-        r = self._icon_surf.get_rect(center=center)
-        surface.blit(self._icon_surf, r)
+        # Use named icon if available, fall back to text
+        icon_map = {
+            'Comms':  'assets/iris-app-comms.png',
+            'Vision': 'assets/iris-mirageOS-icon.png',
+        }
+        iconpath = icon_map.get(self.name)
+        cache_key = int(radius * 1.4)
+        if iconpath and getattr(self, '_icon_cache_size', None) != cache_key:
+            try:
+                img = pygame.image.load(iconpath).convert_alpha()
+                self._icon_cache = pygame.transform.smoothscale(img, (cache_key, cache_key))
+                self._icon_cache_size = cache_key
+            except Exception:
+                self._icon_cache = None
+                self._icon_cache_size = cache_key
+        if iconpath and getattr(self, '_icon_cache', None):
+            r = self._icon_cache.get_rect(center=center)
+            surface.blit(self._icon_cache, r)
+        else:
+            r = self._icon_surf.get_rect(center=center)
+            surface.blit(self._icon_surf, r)
 
     def draw_widget(self, surface, rect):
         nr = self._name_surf.get_rect(centerx=rect.centerx, centery=rect.centery - 10)
