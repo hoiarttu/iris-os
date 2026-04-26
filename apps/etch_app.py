@@ -35,7 +35,7 @@ COLORS = [
     (255,  80,  80),   # red
     (255, 220,  50),   # yellow
     (80,  255, 120),   # green
-    (0,   0,   0),     # black (erase)
+    (20,  20,  20),    # near-black (erase)
 ]
 
 BRUSH_RADIUS = 4
@@ -81,7 +81,7 @@ class EtchApp(BaseApp):
 
         fn = pygame.font.Font(_MONO_BOLD, 20)
         fi = pygame.font.Font(_MONO_BOLD, 16)
-        self._name_surf = fn.render('IRIS Etch', True, WHITE)
+        self._name_surf = fn.render('Etch', True, WHITE)
         self._icon_surf = fi.render('ET',        True, WHITE)
 
         os.makedirs('assets/media', exist_ok=True)
