@@ -191,8 +191,9 @@ class IrisOS:
                     self._active_app.on_event(event)
 
             # ── Hardware input ────────────────────────────────────────────────
-            # Block cap input during spawn animation to prevent crashes
-            if not self.scene._spawning:
+            # Block cap input during spawn animation or when both caps held
+            both_held = self.input._alpha_held and self.input._beta_held
+            if not self.scene._spawning and not both_held:
                 for cap_event in self.input.get_events():
                     self._handle_cap(cap_event)
 
