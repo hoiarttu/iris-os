@@ -33,7 +33,7 @@ class StockReader(threading.Thread):
         
         self.market_data = {ticker: [0.0, 0.0, 0.0] for ticker in self.symbols.keys()}
         self._lock = threading.Lock()
-        self._stop = False
+        self._stopping = False
 
     def run(self):
         # disguise as a standard browser to bypass bot checks (they fr didnt let me in otherwise lmao)
@@ -41,7 +41,7 @@ class StockReader(threading.Thread):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
 
-        while not self._stop:
+        while not self._stopping:
             for display_sym, raw_sym in self.symbols.items():
                 if self._stop: break
                 
@@ -74,7 +74,7 @@ class StockReader(threading.Thread):
             return {k: list(v) for k, v in self.market_data.items()}
 
     def stop(self):
-        self._stop = True
+        self._stopping = True
 
 
 # the app
