@@ -34,6 +34,7 @@ class StockReader(threading.Thread):
         self.market_data = {ticker: [0.0, 0.0, 0.0] for ticker in self.symbols.keys()}
         self._lock = threading.Lock()
         self._stopping = False
+        self.last_update = 0.0
 
     def run(self):
         # disguise as a standard browser to bypass bot checks (they fr didnt let me in otherwise lmao)
@@ -64,10 +65,11 @@ class StockReader(threading.Thread):
                                 
                                 with self._lock:
                                     self.market_data[display_sym] = [price, abs_chg, pct_chg]
+                                    self.last_update = time.time()
                 except Exception as e:
                     pass # fail quietly
             
-            time.sleep(10.0) # avoid ddos
+            time.sleep(30.0)  # 30s refresh
 
     def get(self):
         with self._lock:
@@ -89,7 +91,7 @@ class StockApp(BaseApp):
     # UI colors
     COL_UP   = ( 80, 255, 120)  # bean green
     COL_DOWN = (255,  80,  80)  # red alarm
-    COL_DIM  = ( 60,  60,  70)
+
 
     def __init__(self):
         super().__init__()
@@ -166,7 +168,7 @@ class StockApp(BaseApp):
         y += t.get_height() + 16
 
         # divider ---
-        pygame.draw.line(surface, self.COL_DIM, (40, y), (W - 40, y), 1)
+        pygame.draw.line(surface, SECONDARY, (40, y), (W - 40, y), 1)
         y += 20
 
         # sort by %, h-> l
@@ -183,9 +185,14 @@ class StockApp(BaseApp):
             self._row(surface, margin, y, ticker, price, abs_chg, pct_chg)
             y += 40
 
-        # bottom divider
+        # bottom divider + last update
         y += 10
-        pygame.draw.line(surface, self.COL_DIM, (40, y), (W - 40, y), 1)
+        pygame.draw.line(surface, SECONDARY, (40, y), (W - 40, y), 1)
+        y += 8
+        lu = self._reader.last_update
+        ts = f'updated {int(time.time()-lu)}s ago' if lu > 0 else 'fetching...'
+        tsurf = self._f_sm.render(ts, True, SECONDARY)
+        surface.blit(tsurf, (cx - tsurf.get_width() // 2, y))
 
     def draw_icon(self, surface, center, radius):
         cache_key = int(radius * 1.4)
