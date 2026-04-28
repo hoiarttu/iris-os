@@ -35,7 +35,6 @@ COLORS = [
     (255,  80,  80),   # red
     (255, 220,  50),   # yellow
     (80,  255, 120),   # green
-    (20,  20,  20),    # near-black (erase)
 ]
 
 BRUSH_RADIUS = 4
