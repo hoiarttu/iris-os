@@ -43,7 +43,7 @@ class StockReader(threading.Thread):
 
         while not self._stopping:
             for display_sym, raw_sym in self.symbols.items():
-                if self._stop: break
+                if self._stopping: break
                 
                 url = f"https://query2.finance.yahoo.com/v8/finance/chart/{raw_sym}?interval=1d&range=1d"
                 
