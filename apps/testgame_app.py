@@ -7,10 +7,12 @@ from apps.base_app import BaseApp
 import random
 from pygame.locals import *
 from core.display          import screen, canvas, clock, CENTER, WIDTH, HEIGHT, FPS, BLACK, WHITE, ACCENT
+import ntplib #For online time
 
 _MONO      = 'assets/fonts/Rajdhani-Bold.ttf'
 _MONO_BOLD = 'assets/fonts/Rajdhani-Bold.ttf'
-_TARGET_PATH='assets/Target_PLACEHOLDER.png'
+_TARGET_PATH='assets/Target_Green.png'
+_TARGET_PATH_RED='assets/Target_Red.png'
 _POINTER_PATH='assets/LOGO.png'
 
 
@@ -21,6 +23,8 @@ SCORECOLOR = (123,123,123) #Some sort of gray
 #Size of the game area (Targets stay here)
 GAMEAREA_WIDTH = 1280
 GAMEAREA_HEIGHT = 720
+# GAMEAREA_WIDTH = 640
+# GAMEAREA_HEIGHT = 360
 
 # Maximum speed of target (per cardinal direction, so it can go at that speed both x direction and y direction, so really sqrt(2)*MAXSPEED)
 MAXSPEED = 5
@@ -30,8 +34,31 @@ MAXSTEPS = 10
 
 
 
+
+
 class Target(pygame.sprite.Sprite): #Class for target entities. They need reference surface (refrect) to move on
-      def __init__(self, refrect): 
+    
+    def get_Time(self): #Returns 1 if receives online time, -1 if not. Just to have IoT requirement fullfilled
+        c = ntplib.NTPClient()
+        try:
+            response = c.request('europe.pool.ntp.org', version=3)
+            # print(int(response.tx_time)%60)
+            # Online_Time_As_Text=time.ctime(response.tx_time)
+            # print(Online_Time_As_Text)
+            return int(response.tx_time)%60
+        except:
+            # print("Offline")
+            return -1
+        
+    def spawn_Location(self, second):
+        
+        # self.x_ref + GAMEAREA_WIDTH/2 + (second - 30)*3
+        # self.y_ref + GAMEAREA_HEIGHT/2 + ((second + 30)%60)*3
+        # return (self.x_ref + GAMEAREA_WIDTH/2 + (second - 30)*3, self.y_ref + GAMEAREA_HEIGHT/2 + ((second + 30)%60)*3)
+        return (random.randint(self.x_ref, self.x_ref + GAMEAREA_WIDTH), random.randint(self.y_ref, self.y_ref + GAMEAREA_HEIGHT))    
+
+    
+    def __init__(self, refrect): 
         super().__init__() 
         
         #Save current location of reference surface
@@ -40,9 +67,19 @@ class Target(pygame.sprite.Sprite): #Class for target entities. They need refere
         self.y_ref = self.refrect.y
         
         #Spawn target somewhere in reference surface
-        self.image = pygame.transform.scale_by(pygame.image.load(_TARGET_PATH).convert_alpha(),0.1)
+        self.Spawn_Second=self.get_Time()
+        if self.Spawn_Second<0:
+           # print("Offline")
+           self.image = pygame.transform.scale_by(pygame.image.load(_TARGET_PATH_RED).convert_alpha(),1)
+        else:
+           # print("Online")
+           self.image = pygame.transform.scale_by(pygame.image.load(_TARGET_PATH).convert_alpha(),1)
+        
+        # self.image = pygame.transform.scale_by(pygame.image.load(_TARGET_PATH).convert_alpha(),1)
+        self.image.set_colorkey(((0,0,0))) #Black in target image will be transparent
         self.rect = self.image.get_rect()
-        self.rect.center = (random.randint(self.x_ref, self.x_ref + GAMEAREA_WIDTH), random.randint(self.y_ref, self.y_ref + GAMEAREA_HEIGHT))  
+        # self.rect.center = (random.randint(self.x_ref, self.x_ref + GAMEAREA_WIDTH), random.randint(self.y_ref, self.y_ref + GAMEAREA_HEIGHT)) 
+        self.rect.center = self.spawn_Location(self.Spawn_Second)
         
         
         #Set starting velocities
@@ -50,7 +87,7 @@ class Target(pygame.sprite.Sprite): #Class for target entities. They need refere
         self.y_vel = random.randint(-MAXSPEED, MAXSPEED)
         self.steps_from_change = 0
  
-      def move(self):
+    def move(self):
         
          # Calculates new location of the target (Movement of reference surface + target)
         new_x=  self.refrect.x - self.x_ref + self.x_vel
@@ -71,6 +108,7 @@ class Target(pygame.sprite.Sprite): #Class for target entities. They need refere
             self.x_vel = random.randint(-MAXSPEED, MAXSPEED)
             self.y_vel = random.randint(-MAXSPEED, MAXSPEED)
             
+        
             
             
 class Pointer(pygame.sprite.Sprite): #Class for pointer. Stays stationary on screen perspective, but moves reference surface (refrect) to opposing direction
@@ -78,7 +116,8 @@ class Pointer(pygame.sprite.Sprite): #Class for pointer. Stays stationary on scr
         super().__init__() 
         
         #Sets pointer to middle of screen
-        self.image = pygame.transform.scale_by(pygame.image.load(_POINTER_PATH).convert(),0.01)
+        # self.image = pygame.transform.scale_by(pygame.image.load(_POINTER_PATH).convert(),0.01)
+        self.image = pygame.transform.smoothscale(pygame.image.load(_POINTER_PATH).convert(),(36, 36))
         self.rect = self.image.get_rect()
         self.rect.center = (WIDTH/2, HEIGHT/2)
         
@@ -87,24 +126,24 @@ class Pointer(pygame.sprite.Sprite): #Class for pointer. Stays stationary on scr
         
     def move(self): #Moves reference surface, making it look like the pointer moves
         pressed_keys = pygame.key.get_pressed()
-        if pressed_keys[K_UP]:
-            # self.rect.move_ip(0, -5)
-            # BGrect.move_ip(0, 5)
-            self.BGrect.y -=10 #inverted
-        if pressed_keys[K_DOWN]:
-            # self.rect.move_ip(0,5)
-            # BGrect.move_ip(0, -5)
-            self.BGrect.y +=10 #Inverted
+        # if pressed_keys[K_UP]:
+        #     # self.rect.move_ip(0, -5)
+        #     # BGrect.move_ip(0, 5)
+        #     self.BGrect.y -=10 #inverted
+        # if pressed_keys[K_DOWN]:
+        #     # self.rect.move_ip(0,5)
+        #     # BGrect.move_ip(0, -5)
+        #     self.BGrect.y +=10 #Inverted
          
-        if pressed_keys[K_LEFT]:
-            # self.rect.move_ip(-5, 0)
-            # BGrect.move_ip(5, 0)
-            self.BGrect.x +=10
+        # if pressed_keys[K_LEFT]:
+        #     # self.rect.move_ip(-5, 0)
+        #     # BGrect.move_ip(5, 0)
+        #     self.BGrect.x +=10
 
-        if pressed_keys[K_RIGHT]:
-            # self.rect.move_ip(5, 0)
-            # BGrect.move_ip(-5, 0)
-            self.BGrect.x -=10
+        # if pressed_keys[K_RIGHT]:
+        #     # self.rect.move_ip(5, 0)
+        #     # BGrect.move_ip(-5, 0)
+        #     self.BGrect.x -=10
 
 class TestgameApp(BaseApp): #The main app
     name        = 'Testgame'
@@ -113,9 +152,13 @@ class TestgameApp(BaseApp): #The main app
     show_cursor   = False     # pointer sprite IS the cursor in this app
     cap_hold_secs = 1.5       # must hold cap before alpha/beta register
     _UPDATE_INTERVAL = 1/FPS
-
+    
+    pin_mode = 'world' #Maybe fixed pointer moving? default was 'pinned' and that's handled in main.py
+    
     def __init__(self):
         super().__init__()
+        
+        # self.pin_mode = 'world'
         
         self._timer = 0.0
         self.font=pygame.font.Font(_MONO_BOLD, 80) #For score
@@ -170,8 +213,15 @@ class TestgameApp(BaseApp): #The main app
             # IMU moves the world rect, pointer stays centred
             self._ptr_x = WIDTH  / 2
             self._ptr_y = HEIGHT / 2
-            self.BGrect.x = int(WIDTH  / 2 - GAMEAREA_WIDTH  / 2 - imu_state.yaw   * 28)
+            temp_yaw=imu_state.yaw
+            if temp_yaw>180:
+                temp_yaw-=360
+            # self.BGrect.x = int(WIDTH  / 2 - GAMEAREA_WIDTH  / 2 - imu_state.yaw   * 28)
+            self.BGrect.x = int(WIDTH  / 2 - GAMEAREA_WIDTH  / 2 - temp_yaw   * 28)
             self.BGrect.y = int(HEIGHT / 2 - GAMEAREA_HEIGHT / 2 + imu_state.pitch * 24)
+            
+            # if self.shoot: #Debugging 
+            #     print(f'{imu_state.pitch}')
 
     def on_gesture(self, gesture): #Named gestures from kernel gesture detector
         if gesture == 'pinch':
@@ -200,9 +250,13 @@ class TestgameApp(BaseApp): #The main app
                 pygame.mixer.Sound('assets/pew.wav').play()
                 self.shoot=False            
                 hit=pygame.sprite.spritecollideany(self.P1, self.targets)
+                
+                # print(f'{self.BGrect.center}') #Debugging
+                
                 if hit:
                       hit.kill()
                       self.SCORE +=1
+                      
                       T2 = Target(self.BGrect)      
                       self.targets.add(T2)
                       self.all_sprites.add(T2)
@@ -231,7 +285,7 @@ class TestgameApp(BaseApp): #The main app
         y = nr.bottom + 8
         
         #Image
-        widget_target_surf=pygame.transform.scale_by(pygame.image.load(_TARGET_PATH).convert_alpha(),0.1)
+        widget_target_surf=pygame.transform.scale_by(pygame.image.load(_TARGET_PATH).convert_alpha(),0.5)
         widget_target_rect=widget_target_surf.get_rect(centerx=rect.centerx, top=y)
         surface.blit(widget_target_surf, widget_target_rect)
         
@@ -247,3 +301,6 @@ class TestgameApp(BaseApp): #The main app
         for entity in self.all_sprites:
             surface.blit(entity.image, entity.rect)
         
+
+
+    
