@@ -246,7 +246,7 @@ class EtchApp(BaseApp):
         nr = self._name_surf.get_rect(centerx=rect.centerx,
                                        centery=rect.centery - 8)
         surface.blit(self._name_surf, nr)
-        x = rect.centerx - (len(COLORS) * 14) // 2
+        x = rect.centerx - ((len(COLORS) - 1) * 14) // 2
         for c in COLORS:
             pygame.draw.circle(surface, c, (x, rect.centery + 14), 5)
             x += 14
