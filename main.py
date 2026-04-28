@@ -697,13 +697,6 @@ class IrisOS:
         import os as _os
         self.scene.reset_to_default()
         self.scene.save()
-        # Wipe IMU bias so next boot recalibrates fresh
-        try:
-            import os as _os2
-            _os2.remove(_os2.path.expanduser('~/.iris/imu_bias.json'))
-            print('[IRIS] IMU bias wiped for fresh calibration on next boot')
-        except Exception:
-            pass
         try:
             logo = pygame.image.load('assets/LOGO.png').convert_alpha()
             logo = pygame.transform.smoothscale(logo, (200, 200))
