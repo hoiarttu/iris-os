@@ -137,7 +137,7 @@ class SystemApp(BaseApp):
         self._f_big  = pygame.font.Font(_MONO_BOLD, 36)
         self._f_med  = pygame.font.Font(_MONO_BOLD, 22)
         self._f_sm   = pygame.font.Font(_MONO_BOLD, 16)
-        self._f_tiny = pygame.font.Font(_MONO_BOLD, 12)
+        self._f_tiny = pygame.font.Font(_MONO_BOLD, 18)
 
         # Icon/widget
         fn = pygame.font.Font(_MONO_BOLD, 20)
@@ -273,7 +273,7 @@ class SystemApp(BaseApp):
             ('MEM',  self._mem,  70, 90),
         ]:
             col  = self._val_color(val, warn, crit)
-            surf = self._f_tiny.render(f'{label} {val:.0f}', True, col)
+            surf = self._f_sm.render(f'{label} {val:.0f}', True, col)
             sr   = surf.get_rect(centerx=rect.centerx, top=y)
             surface.blit(surf, sr)
             y += surf.get_height() + 2
