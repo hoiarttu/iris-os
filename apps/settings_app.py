@@ -406,7 +406,7 @@ class SettingsApp(BaseApp):
             # First press — arm confirm
             self._confirm_pending = action
             self._confirm_idx     = self._hover_idx
-            label = 'CONFIRM?' if action in self._DANGER_ACTIONS else 'β again'
+            label = 'CONFIRM?' if action in self._DANGER_ACTIONS else 'press again'
             self._set_status(label)
 
     def _handle_alpha(self):
@@ -476,7 +476,7 @@ class SettingsApp(BaseApp):
         is_confirm = (item.get('action') == getattr(self, '_confirm_pending', None) and idx == getattr(self, '_confirm_idx', None))
         is_status_target = (item.get('action') == getattr(self, '_status_action', None)) or (item.get('label') == getattr(self, '_status_action', None))
         if is_confirm:
-            sm = self._f_small.render('β confirm', True, COL_WARN)
+            sm = self._f_small.render('confirm', True, COL_WARN)
             surface.blit(sm, (x + w - sm.get_width() - 16, y + h // 2 - sm.get_height() // 2))
         elif is_status_target and self._status_msg and time.time() - self._status_t < 4.0:
             sm = self._f_small.render(self._status_msg, True, COL_SEL)
@@ -519,7 +519,7 @@ class SettingsApp(BaseApp):
 
         # Hint
         hint = self._f_sub.render(
-            'β=select  α=back/up', True, COL_DIM)
+            'select  back/up', True, COL_DIM)
         surface.blit(hint, (W - hint.get_width() - 20, H - 20))
 
     def draw_icon(self, surface, center, radius):
