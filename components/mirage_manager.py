@@ -51,12 +51,12 @@ CURSOR_SMOOTH       = 0.35   # render-side lerp (lower = more smoothing)
 def default_apps():
     return [
         None,
-        TestgameApp(),
-        SystemApp(),
-        EtchApp(),
         SettingsApp(),
-        FlashlightApp(),
+        SystemApp(),
         StockApp(),
+        EtchApp(),
+        TestgameApp(),
+        FlashlightApp(),
     ]
 
 # ── Mirage ────────────────────────────────────────────────────────────────────
