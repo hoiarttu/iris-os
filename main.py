@@ -528,7 +528,7 @@ class IrisOS:
                     dim_r = max(0, int(_cd.ACCENT[0] * 0.1))
                     dim_g = max(0, int(_cd.ACCENT[1] * 0.1))
                     dim_b = max(0, int(_cd.ACCENT[2] * 0.1))
-                    self.input.set_led(dim_r, dim_g, dim_b, 1)
+                    self.input.set_led(dim_r, dim_g, dim_b, 0)
                     reason = 'orientation' if bad_orientation else 'still' if still_sleep else 'out of view'
                     print(f'[IRIS] DLP off ({reason}) - LED Dimmed')
         except Exception as e:
