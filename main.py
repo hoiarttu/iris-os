@@ -113,6 +113,9 @@ class IrisOS:
         self._pin_anim = 0.0
         self._PIN_DUR  = 0.4
 
+        # Hand tracker subprocess
+        self._tracker_proc = None
+
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
         self._dlp_timer = 0.0
@@ -152,7 +155,25 @@ class IrisOS:
         self._home_hint_surf = _f.render('both caps = home', True, (60, 60, 60))
 
     def boot(self):
-        # Auto-start hand tracker as background process
+        # Start hand tracker only if enabled in config
+        if self._config.get('hand_tracker', False):
+            self._start_hand_tracker()
+        else:
+            print('[IRIS] Hand tracker disabled in config — skipping')
+
+        # Load saved bias — only recalibrate if no saved bias exists
+        if not self.imu.load_bias():
+            print('[IRIS] No saved bias — running first-time calibration')
+            self.imu.calibrate(500)
+        print('[IRIS] Boot complete.')
+
+    # ── Hand tracker lifecycle ────────────────────────────────────────────────
+
+    def _start_hand_tracker(self):
+        """Launch the hand tracker subprocess."""
+        if self._tracker_proc and self._tracker_proc.poll() is None:
+            print('[IRIS] Hand tracker already running')
+            return
         try:
             tracker_path = os.path.join(os.path.dirname(__file__), 'hand_tracker.py')
             self._tracker_proc = subprocess.Popen(
@@ -165,11 +186,33 @@ class IrisOS:
             print(f'[IRIS] Hand tracker failed to start: {e}')
             self._tracker_proc = None
 
-        # Load saved bias — only recalibrate if no saved bias exists
-        if not self.imu.load_bias():
-            print('[IRIS] No saved bias — running first-time calibration')
-            self.imu.calibrate(500)
-        print('[IRIS] Boot complete.')
+    def _stop_hand_tracker(self):
+        """Terminate the hand tracker subprocess and reset hand state."""
+        if self._tracker_proc:
+            try:
+                self._tracker_proc.terminate()
+                self._tracker_proc.wait(timeout=2)
+            except Exception as e:
+                print(f'[IRIS] Hand tracker stop error: {e}')
+            self._tracker_proc = None
+        # Reset hand so nothing keeps thinking a hand is present
+        self.hand.active = False
+        print('[IRIS] Hand tracker stopped')
+
+    def _set_hand_tracker(self, enabled: bool):
+        """
+        Toggle hand tracker on or off at runtime.
+        Persists the setting to config.
+        Called by SettingsApp.
+        """
+        self._config['hand_tracker'] = enabled
+        from core.config import save_config
+        save_config(self._config)
+
+        if enabled:
+            self._start_hand_tracker()
+        else:
+            self._stop_hand_tracker()
 
     def run(self):
         self._running = True
@@ -203,7 +246,10 @@ class IrisOS:
                 imu_state = self.imu.state
             else:
                 imu_state = self.imu.update()
-            self.hand.update()
+
+            # Only poll hand if tracker is running
+            if self._config.get('hand_tracker', False):
+                self.hand.update()
 
             # ── Gesture detection (disabled — no landmark model available) ──
             # gesture_list = self.gestures.update(self.hand)

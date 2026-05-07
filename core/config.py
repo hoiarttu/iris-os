@@ -11,6 +11,7 @@ BIAS_PATH   = os.path.join(CONFIG_DIR, 'imu_bias.json')
 
 DEFAULTS = {
     'accent': [80, 220, 255],   # IRIS cyan
+    'hand_tracker': False,       # off by default — experimental
 }
 
 def load_config() -> dict:

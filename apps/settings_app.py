@@ -96,8 +96,9 @@ class SettingsApp(BaseApp):
     # ── Menu definition ───────────────────────────────────────────────────────
 
     def _build_menu(self):
-        wifi_ssid = self._get_current_wifi()
-        bt_on     = self._get_bt()
+        wifi_ssid    = self._get_current_wifi()
+        bt_on        = self._get_bt()
+        tracker_on   = self._config.get('hand_tracker', False)
 
         self._items = [
             {'label': 'WiFi',
@@ -106,6 +107,9 @@ class SettingsApp(BaseApp):
             {'label': 'Bluetooth',
              'sub':   'on' if bt_on else 'off',
              'action': 'bt_toggle'},
+            {'label': 'Hand Tracker',
+             'sub':   'on — experimental' if tracker_on else 'off',
+             'action': 'hand_tracker_toggle'},
             {'label': 'Accent Color',
              'sub':   self._accent_name(),
              'action': 'accent'},
@@ -174,8 +178,10 @@ class SettingsApp(BaseApp):
 
     # ── Actions ───────────────────────────────────────────────────────────────
 
-    _DANGER_ACTIONS = {'reboot', 'shutdown', 'update'}
-    _SUBMENU_ACTIONS = {'wifi', 'accent'}  # these open submenus, no confirm needed
+    _DANGER_ACTIONS  = {'reboot', 'shutdown', 'update'}
+    _SUBMENU_ACTIONS = {'wifi', 'accent'}  # open submenus, no confirm needed
+    # Toggles fire immediately on first press (no confirm needed)
+    _TOGGLE_ACTIONS  = {'bt_toggle', 'hand_tracker_toggle'}
 
     def _do_action(self, action):
         if action == 'wifi':
@@ -199,6 +205,21 @@ class SettingsApp(BaseApp):
                 self._build_menu()
             except Exception as e:
                 self._set_status(f'BT error: {e}')
+
+        elif action == 'hand_tracker_toggle':
+            current = self._config.get('hand_tracker', False)
+            new_val = not current
+            if self._os_ref:
+                self._os_ref._set_hand_tracker(new_val)
+                # Sync our local config copy so _build_menu reflects it
+                self._config = self._os_ref._config
+            else:
+                # No kernel ref (shouldn't happen in practice), update locally
+                self._config['hand_tracker'] = new_val
+                save_config(self._config)
+            label = 'Hand tracker on' if new_val else 'Hand tracker off'
+            self._set_status(label)
+            self._build_menu()
 
         elif action == 'accent':
             self._submenu       = 'accent'
@@ -387,8 +408,8 @@ class SettingsApp(BaseApp):
 
         action = self._items[self._hover_idx]['action']
 
-        # Submenus open immediately, no confirm
-        if action in self._SUBMENU_ACTIONS:
+        # Submenus and toggles fire immediately — no confirm step
+        if action in self._SUBMENU_ACTIONS or action in self._TOGGLE_ACTIONS:
             self._confirm_pending = None
             self._confirm_idx     = None
             self._status_action   = action
@@ -515,7 +536,6 @@ class SettingsApp(BaseApp):
                 if y + ITEM_H > H - 30:
                     break
                 self._draw_item(surface, i, item, sel, y)
-
 
         # Hint
         hint = self._f_sub.render(
