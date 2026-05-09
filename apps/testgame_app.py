@@ -1,5 +1,5 @@
 """
-apps/testgame_app.py : Shoot moving targets ()
+apps/testgame_app.py : Shoot moving targets () 515 lines before cleanup
 """
 
 import pygame, time
@@ -43,7 +43,7 @@ MAXSPEED = 0
 # Number of times target moves before changing direction 
 MAXSTEPS = 10
 
-MAXAMMO=10
+MAXAMMO=4
 
 class Hole(pygame.sprite.Sprite):
     def __init__(self, refrect): 
@@ -113,16 +113,17 @@ class Target(pygame.sprite.Sprite): #Class for target entities. They need refere
         
         #Spawn target somewhere in reference surface
         self.Spawn_Second=self.get_Time()
-        if self.Spawn_Second<0:
-           # print("Offline")
-           # self.image = pygame.transform.scale_by(pygame.image.load(_TARGET_PATH_RED).convert_alpha(),1)
-           self.image = pygame.Surface.copy(Red_Target)
-        else:
-           # print("Online")
-           # self.image = pygame.transform.scale_by(pygame.image.load(_TARGET_PATH).convert_alpha(),1)
-           self.image = pygame.Surface.copy(Green_Target)
+        # if self.Spawn_Second<0:
+        #    # print("Offline")
+        #    # self.image = pygame.transform.scale_by(pygame.image.load(_TARGET_PATH_RED).convert_alpha(),1)
+        #    self.image = pygame.Surface.copy(Red_Target)
+        # else:
+        #    # print("Online")
+        #    # self.image = pygame.transform.scale_by(pygame.image.load(_TARGET_PATH).convert_alpha(),1)
+        #    self.image = pygame.Surface.copy(Green_Target)
         
         # self.image = pygame.transform.scale_by(pygame.image.load(_TARGET_PATH).convert_alpha(),1)
+        self.image = pygame.Surface.copy(Red_Target)
         self.image.set_colorkey(((0,0,0))) #Black in target image will be transparent
         self.rect = self.image.get_rect()
         # self.rect.center = (random.randint(self.x_ref, self.x_ref + GAMEAREA_WIDTH), random.randint(self.y_ref, self.y_ref + GAMEAREA_HEIGHT)) 
@@ -428,6 +429,8 @@ class TestgameApp(BaseApp): #The main app
                 
                 if hit and pygame.sprite.collide_circle(hit, self.H): #Keep 'hit' as first condition, as if it is 'None', we never process second condition where 'hit' as 'None' would cause an error
                       hit.alive=0
+                      hit.image=pygame.Surface.copy(Green_Target)
+                      hit.image.set_colorkey(((0,0,0))) #Black in target image will be transparent
                       self.targets.remove(hit)
                       self.hit_targets.add(hit)
                       self.faders.add(hit)
@@ -484,13 +487,9 @@ class TestgameApp(BaseApp): #The main app
     
         surface.fill(BGCOLOR)
         surface.blit(self.background, self.BGrect) #Background
-        scores = self.font.render(str(self.SCORE), True, SCORECOLOR)
-        surface.blit(scores, (10,10)) #Score
         
-        for i in range(self.ammo):
-            surface.blit(self.ammo_image, (10 +i*11,100))
-        # ammos=self.font.render("ammo: " + str(self.ammo), True, SCORECOLOR)
-        # surface.blit(ammos, (10,80)) #Score
+        
+        
         
         #Entities
         
@@ -505,7 +504,17 @@ class TestgameApp(BaseApp): #The main app
             
         if not self.running:
             surface.blit(self.GameOver_screen, (self.BGrect.center[0]-200,self.BGrect.center[1]-100))
+            # surface.blit(self.GameOver_screen, (WIDTH/2, HEIGHT/2))
             
+            
+        scores = self.font.render(str(self.SCORE), True, SCORECOLOR)
+        surface.blit(scores, (WIDTH/2,30)) #Score
+        
+        for i in range(self.ammo):
+            surface.blit(self.ammo_image, (WIDTH/2 +i*11,120))
+        # ammos=self.font.render("ammo: " + str(self.ammo), True, SCORECOLOR)
+        # surface.blit(ammos, (10,80)) #Score
+        
         surface.blit(self.P1.image, self.P1.rect) #Draws pointer to top
         
 

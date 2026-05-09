@@ -554,8 +554,8 @@ class IrisOS:
             )
 
             # bad_orientation and still_sleep override in_view
-            bad_orientation = imu_state.pitch < -75.0
-            force_off = bad_orientation or still_sleep
+            #bad_orientation = imu_state.pitch < -75.0
+            force_off = still_sleep
 
             if (in_view or cap_active or hand_active) and not force_off:
                 self._dlp_off_timer = 0.0
@@ -575,7 +575,7 @@ class IrisOS:
                     dim_g = max(0, int(_cd.ACCENT[1] * 0.1))
                     dim_b = max(0, int(_cd.ACCENT[2] * 0.1))
                     self.input.set_led(dim_r, dim_g, dim_b, 0)
-                    reason = 'orientation' if bad_orientation else 'still' if still_sleep else 'out of view'
+                    reason = 'still' if still_sleep else 'out of view'
                     print(f'[IRIS] DLP off ({reason}) - LED Dimmed')
         except Exception as e:
             print(f"[IRIS] DLP Logic Error: {e}")

@@ -122,12 +122,12 @@ class SettingsApp(BaseApp):
             {'label': 'Reboot',
              'sub':   'restart raspberry pi',
              'action': 'reboot'},
-            {'label': 'Shutdown',
-             'sub':   'power off',
-             'action': 'shutdown'},
             {'label': 'About',
              'sub':   self._get_about(),
              'action': 'about'},
+            {'label': 'Shutdown',
+             'sub':   'power off',
+             'action': 'shutdown'},
         ]
 
     # ── System reads ──────────────────────────────────────────────────────────
@@ -317,7 +317,7 @@ class SettingsApp(BaseApp):
         # Rebuild about string periodically
         if int(time.time()) % 10 == 0:
             if self._items:
-                self._items[-1]['sub'] = self._get_about()
+                next(i for i in self._items if i['action'] == 'about')['sub'] = self._get_about()
 
     def on_imu(self, imu_state, hand=None):
         self._imu_state = imu_state
