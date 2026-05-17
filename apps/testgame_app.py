@@ -1,5 +1,5 @@
 """
-apps/testgame_app.py : Shoot moving targets () 515 lines before cleanup
+apps/testgame_app.py : Shoot moving targets () 515 lines before cleanup. Test
 """
 
 import pygame, time
