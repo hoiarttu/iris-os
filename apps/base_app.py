@@ -50,12 +50,15 @@ class BaseApp:
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     def update(self, dt: float):
+        """App can update it's state. Should be called once per frame. Receives time since previous call (dt) in milliseconds"""
         pass
 
-    def on_focus(self):
+    def on_focus(self): 
+        """Tells app that it's focused on hexmenu"""
         self.focused = True
 
     def on_blur(self):
+        """Tells app that it's no longer focused on hexmenu"""
         self.focused = False
         self.active  = False
 
