@@ -17,7 +17,7 @@ from apps.clock_app     import ClockApp
 
 
 _CURSOR_SURF = None
-def _get_cursor():
+def _get_cursor(): #Returns current cursor. If none, tries to return logo as a cursor
     global _CURSOR_SURF
     if _CURSOR_SURF is None:
         try:
@@ -119,7 +119,7 @@ class MirageManager:
         self.mirages = [Mirage(0.0, 0.0)]
         print('[Scene] Mirages reset to default')
 
-    def load(self):
+    def load(self): #Loads saved mirages from json file
         self.mirages = []
         try:
             if os.path.exists(self.path):
@@ -139,17 +139,17 @@ class MirageManager:
             self.save()   # write clean default immediately
         print(f'[Scene] {len(self.mirages)} mirage(s) loaded')
 
-    def save(self):
+    def save(self): #Saves mirages to json file
         with open(self.path, 'w') as f:
             json.dump([m.to_dict() for m in self.mirages], f, indent=2)
         print(f'[Scene] Saved {len(self.mirages)} mirage(s)')
 
-    def add(self, azimuth, elevation, mtype='hexmenu'):
+    def add(self, azimuth, elevation, mtype='hexmenu'): #Adds new mirage
         m = Mirage(azimuth, elevation, mtype)
         self.mirages.append(m)
         return m
 
-    def remove(self, idx):
+    def remove(self, idx): #Removes a mirage
         if self.mirages:
             self.mirages.pop(idx)
 
@@ -159,7 +159,7 @@ class MirageManager:
         self._spawning     = True
         self._spawn_forced = True
 
-    def confirm_selection(self, os_ref):
+    def confirm_selection(self, os_ref): #Tells main.py to launch selected app
         if self._spawning:
             return   # block selection during spawn animation
         if self._sel_mirage and self._sel_idx is not None:
@@ -307,6 +307,8 @@ class MirageManager:
         yaw   = imu_state.yaw
         pitch = imu_state.pitch
 
+
+        #Calculating correction 
         yaw_diff = angle_diff(yaw, mirage.azimuth)
         yaw_sign = 1 if ((yaw - mirage.azimuth + 360) % 360) < 180 else -1
         dx = -yaw_sign * yaw_diff * PX_PER_DEGREE_YAW
@@ -323,6 +325,7 @@ class MirageManager:
         if sel is not None:
             sel += 1
 
+        #Draw selected hex last so that the zoom on it is not covered by other hexes
         draw_order = [i for i in range(1, len(polys)) if i != sel]
         if sel is not None:
             draw_order.append(sel)
