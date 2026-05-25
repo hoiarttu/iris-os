@@ -20,7 +20,7 @@ import time
 import math
 
 
-class OrientationState:
+class OrientationState: #Class for containing current orientation
     __slots__ = ('yaw', 'pitch', 'roll', 'timestamp')
 
     def __init__(self):
@@ -38,7 +38,7 @@ class OrientationState:
                 f'roll={self.roll:.1f})')
 
 
-class RealIMU:
+class RealIMU: #Uses data from MPU6050 to update OrientationState
     __slots__ = ('sensor', 'yaw_axis', 'pitch_axis', 'roll_axis',
                  'alpha', '_bias', '_pitch_offset', '_roll_offset',
                  '_state', '_last_time')
@@ -106,7 +106,7 @@ class RealIMU:
         self._state     = OrientationState()
         self._last_time = time.time()
 
-    def update(self) -> OrientationState:
+    def update(self) -> OrientationState: #Checks how the MPU6050 has moved and moves OrientationState to that direction
         now = time.time()
         dt  = min(now - self._last_time, 0.1)
         self._last_time = now
@@ -146,7 +146,7 @@ class RealIMU:
         return self._state
 
 
-class MockIMU:
+class MockIMU: #Uses keyboard input to update OrientationState
     __slots__ = ('_pygame', '_state', '_last_time')
 
     YAW_SPEED   = 40.0
@@ -160,14 +160,14 @@ class MockIMU:
         print('[IMU] No hardware — keyboard mock active.')
         print('[IMU] LEFT/RIGHT=yaw  UP/DOWN=pitch  R=reset')
 
-    def calibrate(self, samples=0, **_):
+    def calibrate(self, samples=0, **_): #Keyboards don't drift. No calibration needed
         pass
 
     def reset(self):
         self._state     = OrientationState()
         self._last_time = time.time()
 
-    def update(self) -> OrientationState:
+    def update(self) -> OrientationState: #Checks what keys are pressed and moves OrientationState to that direction
         pg  = self._pygame
         now = time.time()
         dt  = min(now - self._last_time, 0.1)
@@ -194,6 +194,8 @@ class Mpu6050Handler:
 
     def __init__(self, address=0x68, bus=1,
                  yaw_axis='z', pitch_axis='y', roll_axis='x', alpha=0.98):
+        
+        #Uses mock imu if real not found
         try:
             self._backend = RealIMU(address, bus,
                                     yaw_axis, pitch_axis, roll_axis, alpha)
@@ -202,6 +204,7 @@ class Mpu6050Handler:
             print(f'[IMU] Hardware unavailable ({e})')
             self._backend = MockIMU()
 
+#These just relay the command to backend solution
     def calibrate(self, samples=200):
         return self._backend.calibrate(samples=samples)
 
