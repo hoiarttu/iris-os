@@ -1,3 +1,6 @@
+"""
+Collection of useful values for displaying image. Screen dimensions, colors, fonts etc.
+"""
 import os
 import pygame
 

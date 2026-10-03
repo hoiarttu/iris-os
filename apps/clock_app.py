@@ -28,19 +28,19 @@ class ClockApp(BaseApp):
 
     def update(self, dt: float):
         self._tick += dt
-        if self._tick >= 1.0:
+        if self._tick >= 1.0: #We really don't need update more often than once a second or so
             self._tick = 0.0
             now = time.localtime()
             t = f'{now.tm_hour:02d}.{now.tm_min:02d}'
             d = f'{now.tm_mday}.{now.tm_mon}.{now.tm_year}'
-            if t != self._time_str:
+            if t != self._time_str: #Updates time if it has changed
                 self._time_str  = t
                 self._time_surf = self._font_time.render(t, True, self._color)
-            if d != self._date_str:
+            if d != self._date_str: #Updates date if it has changed
                 self._date_str  = d
                 self._date_surf = self._font_date.render(d, True, self._color)
 
-    def draw_widget(self, surface: pygame.Surface, rect: pygame.Rect):
+    def draw_widget(self, surface: pygame.Surface, rect: pygame.Rect): #Draws time and date on the widget
         if self._time_surf:
             tr = self._time_surf.get_rect(centerx=rect.centerx,
                                            centery=rect.centery - 12)
