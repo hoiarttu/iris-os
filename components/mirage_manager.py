@@ -36,6 +36,7 @@ from apps.etch_app        import EtchApp
 from apps.settings_app    import SettingsApp
 from apps.stocks_app      import StockApp
 from apps.flashlight_app  import FlashlightApp
+from apps.dash_app        import DashApp
 
 # ── Tuning ────────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,8 @@ class MirageManager:
         self._dwell        = {}
         self._dwell_key    = None
         self._clock_app    = ClockApp()
+        self._dash_app     = DashApp()
+        self._centre_hover = False
         self._focused_app  = self._clock_app
         self._last_focused = None
         self._sel_mirage   = None
@@ -168,6 +171,10 @@ class MirageManager:
                 if os_ref._active_app is app:
                     return   # already running — ignore
                 os_ref.launch_app(app, mirage=self._sel_mirage)
+        elif self._centre_hover and os_ref:
+            if os_ref._active_app is self._dash_app:
+                return   # already running — ignore
+            os_ref.launch_app(self._dash_app, mirage=None)
 
     # ── Grab repositioning ────────────────────────────────────────────────────
 
@@ -232,10 +239,11 @@ class MirageManager:
         cursor_pos = (int(self._cursor_sx), int(self._cursor_sy))
 
         # ── Mirage rendering ──────────────────────────────────────────────────
-        new_focused    = None
-        new_sel_mirage = None
-        new_sel_idx    = None
-        widget_pos     = CENTER
+        new_focused      = None
+        new_sel_mirage   = None
+        new_sel_idx      = None
+        new_centre_hover = False
+        widget_pos       = CENTER
 
         for m in self.mirages:
             m.visible = True
@@ -244,13 +252,15 @@ class MirageManager:
                     app.update(dt)
 
             if m.type == 'hexmenu':
-                sel, cpt0 = self._render_hexmenu(m, imu_state, dt, cursor_pos)
+                sel, cpt0, centre_hover = self._render_hexmenu(m, imu_state, dt, cursor_pos)
                 if cpt0 is not None:
                     widget_pos = cpt0
                 if sel is not None:
                     new_focused    = m.apps[sel]
                     new_sel_mirage = m
                     new_sel_idx    = sel
+                if centre_hover:
+                    new_centre_hover = True
 
         # Focus / blur
         if new_focused != self._last_focused:
@@ -262,6 +272,7 @@ class MirageManager:
 
         self._sel_mirage  = new_sel_mirage
         self._sel_idx     = new_sel_idx
+        self._centre_hover = new_centre_hover
         self._focused_app = new_focused if new_focused else self._clock_app
 
         self._draw_centre_widget(widget_pos)
@@ -324,6 +335,7 @@ class MirageManager:
         sel     = self.hex_menu.get_highlight(polys[1:], centers[1:], cursor)
         if sel is not None:
             sel += 1
+        centre_hover = self.hex_menu.get_highlight([polys[0]], [centers[0]], cursor) is not None
 
         #Draw selected hex last so that the zoom on it is not covered by other hexes
         draw_order = [i for i in range(1, len(polys)) if i != sel]
@@ -350,7 +362,7 @@ class MirageManager:
                 mirage.apps[i].draw_icon(canvas, cpt,
                                           self.hex_menu.radius * 0.5)
 
-        return sel, centers[0]
+        return sel, centers[0], centre_hover
 
     @staticmethod
     def _draw_dwell_ring(surface, center, frac):
