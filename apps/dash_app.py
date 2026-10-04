@@ -83,6 +83,7 @@ class WeatherReader(threading.Thread):
 
 
 class DashApp(BaseApp):
+    roll_locked = True       # status row ignores head roll
     name        = 'Dash'
     description = 'Glanceable HUD'
     pin_mode    = 'free'   # always centred, ignores head yaw/pitch offset

@@ -36,6 +36,11 @@ class BaseApp:
     # Cursor
     show_cursor   = True
 
+    # Roll
+    roll_locked   = False       # True = redraw this app's fullscreen content
+                                #   unrotated, directly to screen, after roll
+                                #   correction — HUD-style, ignores head tilt
+
     # DLP
     dlp_auto_off      = True    # set False to prevent auto sleep (media apps etc.)
     dlp_sleep_on_still = False  # set True to sleep after 30s no movement (like menu)

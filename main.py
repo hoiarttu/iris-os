@@ -434,6 +434,12 @@ class IrisOS:
             else:
                 screen.blit(canvas, (0, 0))
 
+            # Roll-locked apps (e.g. Dash): redraw unrotated, directly to
+            # screen, after roll correction — ignores head tilt entirely.
+            if (self.state == STATE_APP and self._active_app
+                    and getattr(self._active_app, 'roll_locked', False)):
+                self._active_app.draw_fullscreen(screen)
+
             pygame.display.flip()
 
         self._shutdown()
