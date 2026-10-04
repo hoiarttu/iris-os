@@ -21,8 +21,9 @@ LOCATION_CACHE_PATH = 'last_location.json'
 WEATHER_POLL_SECS   = 1200   # 20 min between live fetches once a location exists
 LOCATION_CHECK_SECS = 60     # how often we check whether a location has appeared
 
-# Bottom info row, reserved so a future minimap never draws underneath it —
-# map phase should cap its viewport height at HEIGHT - BOTTOM_BAR_RESERVED_PX.
+# Bottom info row. Its top edge IS the future map's bottom edge — not a
+# margin near it. Map viewport must use this exact constant as its bottom,
+# so the two are structurally attached, never independently positioned.
 BOTTOM_BAR_MARGIN      = 24
 BOTTOM_BAR_RESERVED_PX = 64
 
