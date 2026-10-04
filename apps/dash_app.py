@@ -13,13 +13,18 @@ import time, threading, json
 import urllib.request
 import pygame
 from apps.base_app import BaseApp
-from core.display   import WIDTH, BLACK, WHITE
+from core.display   import WIDTH, HEIGHT, BLACK, WHITE
 
 _MONO_BOLD = 'assets/fonts/Rajdhani-Bold.ttf'
 
 LOCATION_CACHE_PATH = 'last_location.json'
 WEATHER_POLL_SECS   = 1200   # 20 min between live fetches once a location exists
 LOCATION_CHECK_SECS = 60     # how often we check whether a location has appeared
+
+# Bottom info row, reserved so a future minimap never draws underneath it —
+# map phase should cap its viewport height at HEIGHT - BOTTOM_BAR_RESERVED_PX.
+BOTTOM_BAR_MARGIN      = 24
+BOTTOM_BAR_RESERVED_PX = 64
 
 
 class WeatherReader(threading.Thread):
@@ -129,14 +134,13 @@ class DashApp(BaseApp):
 
     def draw_fullscreen(self, surface: pygame.Surface):
         surface.fill(BLACK)
-        margin = 24
-        y = margin
+        y = HEIGHT - BOTTOM_BAR_MARGIN   # row's baseline — anchored to screen bottom
         if self._temp_surf:
-            r = self._temp_surf.get_rect(left=margin, top=y)
+            r = self._temp_surf.get_rect(left=BOTTOM_BAR_MARGIN, bottom=y)
             surface.blit(self._temp_surf, r)
         if self._time_surf:
-            r = self._time_surf.get_rect(centerx=WIDTH // 2, top=y)
+            r = self._time_surf.get_rect(centerx=WIDTH // 2, bottom=y)
             surface.blit(self._time_surf, r)
         if self._date_surf:
-            r = self._date_surf.get_rect(right=WIDTH - margin, top=y)
+            r = self._date_surf.get_rect(right=WIDTH - BOTTOM_BAR_MARGIN, bottom=y)
             surface.blit(self._date_surf, r)
