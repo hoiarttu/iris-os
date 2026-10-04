@@ -7,3 +7,5 @@ iris_boot.sh
 iris_launcher.sh
 start_iris.sh
 whitenoise.py
+last_location.json
+*.pem
