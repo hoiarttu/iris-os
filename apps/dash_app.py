@@ -18,6 +18,7 @@ class DashApp(BaseApp):
     name        = 'Dash'
     description = 'Glanceable HUD'
     pin_mode    = 'free'   # always centred, ignores head yaw/pitch offset
+    show_cursor = False    # no reticle yet — hide cursor while Dash is open
 
     def __init__(self):
         super().__init__()
